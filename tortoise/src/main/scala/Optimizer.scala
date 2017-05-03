@@ -5,7 +5,7 @@ import
 
 import 
 	org.nlogo.core.{ prim, AstTransformer, ProcedureDefinition, ReporterApp, Statement },
-		prim.{ _const, _fd }
+		prim.{ _const, _fd, _other, _any }
 
 object Optimizer {
 
@@ -32,6 +32,20 @@ object Optimizer {
       statement match {
         case Statement(command: _fd, Seq(ReporterApp(_const(value: java.lang.Double), _, _)), _) if ((value > -1) && (value < 1)) => statement.copy(command = new _fdlessthan1)
         case _ => super.visitStatement(statement)
+      }
+    }
+  }
+
+  class _anyother extends Reporter {
+    override def syntax = 
+      Syntax.reporterSyntax(right = List(Syntax.AgentsetType), ret = Syntax.BooleanType)
+  }
+
+  object AnyOtherTransformer extends AstTransformer {
+    override def visitReporterApp(ra: ReporterApp): ReporterApp = {
+      ra match {
+        case ReporterApp(reporter: _any, Seq(ReporterApp(other: _other, otherArgs, _)), _) => ra.copy(reporter = new _anyother, args = otherArgs)
+        case _ => super.visitReporterApp(ra)
       }
     }
   }

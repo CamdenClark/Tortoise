@@ -59,6 +59,7 @@ object SimplePrims {
         case _: prim.etc._linkheading => "SelfPrims.linkHeading"
         case _: prim.etc._linklength  => "SelfPrims.linkLength"
         case _: prim._other           => "SelfPrims.other"
+        case _: Optimizer._anyother    => "SelfPrims.anyOther"
 
         // SelfManager
         case _: prim.etc._bothends                   => "SelfManager.self().bothEnds"
