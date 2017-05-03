@@ -233,6 +233,7 @@ object SimplePrims {
   object SimpleCommand {
     def unapply(c: Command): Option[String] =
       PartialFunction.condOpt(c) {
+        case _: Optimizer._fdone                    => "SelfManager.self().fdOne()"
         case _: prim._done                         => ""
         case _: prim._stop                         => "throw new Exception.StopInterrupt"
         case _: prim.etc._observercode             => ""
