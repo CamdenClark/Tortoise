@@ -5,7 +5,7 @@ import
 
 import 
 	org.nlogo.core.{ prim, AstTransformer, ProcedureDefinition, ReporterApp, Statement },
-		prim.{ _const, _fd, _other, _any }
+		prim.{ _const, _fd, _other, _any, _count }
 
 object Optimizer {
 
@@ -45,6 +45,20 @@ object Optimizer {
     override def visitReporterApp(ra: ReporterApp): ReporterApp = {
       ra match {
         case ReporterApp(reporter: _any, Seq(ReporterApp(other: _other, otherArgs, _)), _) => ra.copy(reporter = new _anyother, args = otherArgs)
+        case _ => super.visitReporterApp(ra)
+      }
+    }
+  }
+
+  class _countother extends Reporter {
+    override def syntax = 
+      Syntax.reporterSyntax(right = List(Syntax.AgentsetType), ret = Syntax.BooleanType)
+  }
+
+  object CountOtherTransformer extends AstTransformer {
+    override def visitReporterApp(ra: ReporterApp): ReporterApp = {
+      ra match {
+        case ReporterApp(reporter: _count, Seq(ReporterApp(other: _other, countArgs, _)), _) => ra.copy(reporter = new _countother, args = countArgs)
         case _ => super.visitReporterApp(ra)
       }
     }
