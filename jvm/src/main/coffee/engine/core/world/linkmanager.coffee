@@ -88,6 +88,23 @@ module.exports =
       )
       return
 
+    # () => Array[Object]
+    exportState: ->
+      filterLink = (link) ->
+        {
+          'end1': link['end1'],
+          'end2': link['end2'],
+          'color': link['_color'],
+          'label': link['_label'],
+          'label-color': link['_labelcolor'],
+          'hidden?': link['_isHidden'],
+          'breed': link['breed'],
+          'thickness': link['thickness'],
+          'shape': link['_shape'],
+          'tiemode': link['tiemode']
+        }
+      pipeline(map(filterLink))(@_linkArray())
+
     # () => LinkSet
     links: ->
       thunk = (=> @_linkArray())

@@ -8,6 +8,7 @@ Builtins   = require('../structure/builtins')
 IDManager  = require('./idmanager')
 
 { map }        = require('brazierjs/array')
+{ pipeline }   = require('brazierjs/function')
 { rangeUntil } = require('brazierjs/number')
 
 { DeathInterrupt, ignoring }  = require('util/exception')
@@ -76,6 +77,27 @@ module.exports =
       )
       @_idManager.importState(nextIndex)
       return
+
+    exportState: ->
+      filterTurtles = (turtle) =>
+        temp_export = {
+          'who': turtle['id'],
+          'color': turtle['_color'],
+          'heading': turtle['_heading'],
+          'xcor': turtle['xcor'],
+          'ycor': turtle['ycor'],
+          'shape': turtle['_shape'],
+          'label': turtle['_label'],
+          'label-color': turtle['_labelcolor'],
+          'breed': turtle['_breed'],
+          'hidden?': turtle['_hidden'],
+          'size': turtle['_size'],
+          'pen-size': turtle.penManager.getSize(),
+          'pen-mode': turtle.penManager.getMode().toString(),
+        }
+        pipeline(map((turtles_own) -> temp_export[turtles_own] = turtle.getVariable(turtles_own)))(turtle['varNames']().slice(13))
+        temp_export
+      pipeline(map(filterTurtles))(@turtles().toArray())
 
     # () => TurtleSet
     turtles: ->
