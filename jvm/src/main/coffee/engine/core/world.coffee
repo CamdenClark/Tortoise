@@ -11,6 +11,8 @@ TurtleManager   = require('./world/turtlemanager')
 StrictMath      = require('shim/strictmath')
 NLMath          = require('util/nlmath')
 
+{ map }               = require('brazierjs/array')
+{ pipeline }          = require('brazierjs/function')
 { TopologyInterrupt } = require('util/exception')
 
 module.exports =
@@ -340,6 +342,47 @@ module.exports =
         @_patchesAllBlack = false
         @_updater.updated(this)("patchesAllBlack")
       return
+
+    #TODO: Find out how to expose the "subject" and min/max pcoordinates.
+    # () => Object
+    exportGlobals: ->
+      temp_export = {
+        'minPxcor': @minPxcor,
+        'minPycor': @minPycor,
+        'maxPxcor': @maxPxcor,
+        'maxPycor': @maxPycor,
+        'perspective': @observer.getPerspective(),
+        'subject': @observer.getGlobal("subject"),
+        'ticks': @ticker.tickCount()
+      }
+      temp_export
+
+    #TODO: Are there breeds of patches with their own variables that they own?
+    # () => Array[Object]
+    exportPatchState: ->
+      filterPatch = (patch) ->
+        temp_export = {
+          'pxcor': patch.getCoords()[0],
+          'pycor': patch.getCoords()[1],
+          'pcolor': patch.getVariable("pcolor"),
+          'plabel': patch.getVariable("plabel"),
+          'plabelColor': patch.getVariable("plabel-color")
+        }
+        if patch.varNames().length == 5
+          return temp_export
+        pipeline(map((patches_own) -> temp_export[patches_own] = patch.getVariable(patches_own)))(patch.varNames().slice(5))
+        temp_export
+      pipeline(map(filterPatch))(@patches().toArray())
+
+    #TODO: Export RNG, plots, globals, handle extensions
+    # () => Object[Array[Object]]
+    exportStateAsJSON: ->
+      {
+        'patches': @exportPatchState(),
+        'turtles': @turtleManager.exportState(),
+        'links': @linkManager.exportState(),
+        'globals': @exportGlobals()
+      }
 
     # (WorldState, (Object[Any]) => Unit, (String) => Agent) => Unit
     importState: (

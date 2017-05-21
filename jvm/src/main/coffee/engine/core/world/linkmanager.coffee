@@ -89,20 +89,25 @@ module.exports =
       return
 
     # () => Array[Object]
+    #TODO: Hashmap for breeds-own variables
     exportState: ->
       filterLink = (link) ->
-        {
-          'end1': link['end1'],
-          'end2': link['end2'],
-          'color': link['_color'],
-          'label': link['_label'],
-          'label-color': link['_labelcolor'],
-          'hidden?': link['_isHidden'],
-          'breed': link['breed'],
-          'thickness': link['thickness'],
-          'shape': link['_shape'],
-          'tiemode': link['tiemode']
+        temp_export = {
+          'end1': link.getVariable("end1").toString(),
+          'end2': link.getVariable("end2").toString(),
+          'color': link.getVariable("color"),
+          'label': link.getVariable("label"),
+          'labelColor': link.getVariable("label-color"),
+          'isHidden': link.getVariable("hidden?"),
+          'breed': link.getVariable("breed").toString(),
+          'thickness': link.getVariable("thickness"),
+          'shape': link.getVariable("shape"),
+          'tieMode': link.getVariable("tie-mode")
         }
+        if link.varNames().length == 10
+          return temp_export
+        pipeline(map((links_own) -> temp_export[links_own] = turtle.getVariable(links_own)))(link.varNames().slice(10))
+        temp_export
       pipeline(map(filterLink))(@_linkArray())
 
     # () => LinkSet

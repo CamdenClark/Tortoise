@@ -64,6 +64,10 @@ module.exports =
       @_updatePerspective()
       return
 
+    # () => Integer
+    getPerspective: ->
+      @_perspective.toInt
+
     # () => Unit
     resetPerspective: ->
       @_perspective = Observe

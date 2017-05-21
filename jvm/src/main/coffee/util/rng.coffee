@@ -24,6 +24,10 @@ module.exports =
       @_mainRNG.load(state)
       return
 
+    # () => RNG
+    getRNG: ->
+      @_mainRNG
+
     # () => Number
     nextGaussian: =>
       @_currentRNG.nextGaussian()

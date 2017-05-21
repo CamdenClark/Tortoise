@@ -78,22 +78,25 @@ module.exports =
       @_idManager.importState(nextIndex)
       return
 
+    # () => Array[Object]
+    #TODO: Add object hashmap that holds breeds-own variable names for that
+    #sweet O(1) access and to avoid repetition.
     exportState: ->
       filterTurtles = (turtle) =>
         temp_export = {
-          'who': turtle['id'],
-          'color': turtle['_color'],
-          'heading': turtle['_heading'],
-          'xcor': turtle['xcor'],
-          'ycor': turtle['ycor'],
-          'shape': turtle['_shape'],
-          'label': turtle['_label'],
-          'label-color': turtle['_labelcolor'],
-          'breed': turtle['_breed'],
-          'hidden?': turtle['_hidden'],
-          'size': turtle['_size'],
-          'pen-size': turtle.penManager.getSize(),
-          'pen-mode': turtle.penManager.getMode().toString(),
+          'who': turtle.getVariable('id'),
+          'color': turtle.getVariable('color'),
+          'heading': turtle.getVariable('heading'),
+          'xcor': turtle.getVariable('xcor'),
+          'ycor': turtle.getVariable('ycor'),
+          'shape': turtle.getVariable('shape'),
+          'label': turtle.getVariable('label'),
+          'labelColor': turtle.getVariable('label-color'),
+          'breed': turtle.getVariable('breed').toString(),
+          'isHidden': turtle.getVariable('hidden?'),
+          'size': turtle.getVariable('size'),
+          'penSize': turtle.penManager.getSize(),
+          'penMode': turtle.penManager.getMode().toString(),
         }
         pipeline(map((turtles_own) -> temp_export[turtles_own] = turtle.getVariable(turtles_own)))(turtle['varNames']().slice(13))
         temp_export
