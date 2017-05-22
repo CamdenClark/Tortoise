@@ -351,10 +351,15 @@ module.exports =
         'minPycor': @minPycor,
         'maxPxcor': @maxPxcor,
         'maxPycor': @maxPycor,
-        'perspective': @observer.getPerspective(),
-        'subject': @observer.getGlobal("subject"),
+        'test': @observer,
+        'perspective': 'Implement me',
+        'subject': 'implement me',
         'ticks': @ticker.tickCount()
       }
+      #console.log(this)
+      if @observer.varNames().length == 0
+        return temp_export
+      pipeline(map((extra_global) -> temp_export[extra_global] = @observer.getGlobal(extra_global)))(@observer.varNames())
       temp_export
 
     #TODO: Are there breeds of patches with their own variables that they own?
