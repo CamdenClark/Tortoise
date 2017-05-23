@@ -92,7 +92,7 @@ module.exports =
     #TODO: Hashmap for breeds-own variables
     exportState: ->
       filterLink = (link) ->
-        temp_export = {
+        tempExport = {
           'end1': link.getVariable("end1").toString(),
           'end2': link.getVariable("end2").toString(),
           'color': link.getVariable("color"),
@@ -105,10 +105,14 @@ module.exports =
           'tieMode': link.getVariable("tie-mode")
         }
         if link.varNames().length == 10
-          return temp_export
-        pipeline(map((links_own) -> temp_export[links_own] = turtle.getVariable(links_own)))(link.varNames().slice(10))
-        temp_export
-      pipeline(map(filterLink))(@_linkArray())
+          return tempExport
+        filterExtraVars = (extraVar) =>
+          if typeof extraVar == 'object'
+            return extraVar.toString()
+          extraVar
+        pipeline(map((linksOwn) -> tempExport[linksOwn] = filterExtraVars(link.getVariable(linksOwn))))(link.varNames().slice(10))
+        tempExport
+      pipeline(map(filterLink))(@links().toArray())
 
     # () => LinkSet
     links: ->

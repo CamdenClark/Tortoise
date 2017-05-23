@@ -346,37 +346,40 @@ module.exports =
     #TODO: Find out how to expose the "subject" and min/max pcoordinates.
     # () => Object
     exportGlobals: ->
-      temp_export = {
-        'minPxcor': @minPxcor,
-        'minPycor': @minPycor,
-        'maxPxcor': @maxPxcor,
-        'maxPycor': @maxPycor,
-        'test': @observer,
-        'perspective': 'Implement me',
-        'subject': 'implement me',
+      tempExport = {
+        'minPxcor': @topology.minPxcor,
+        'minPycor': @topology.minPycor,
+        'maxPxcor': @topology.maxPxcor,
+        'maxPycor': @topology.maxPycor,
+        'perspective': @observer.getPerspective(),
+        'subject': @observer.subject().toString(),
         'ticks': @ticker.tickCount()
       }
       #console.log(this)
       if @observer.varNames().length == 0
-        return temp_export
-      pipeline(map((extra_global) -> temp_export[extra_global] = @observer.getGlobal(extra_global)))(@observer.varNames())
-      temp_export
+        return tempExport
+      pipeline(map((extraGlobal) => tempExport[extraGlobal] = @observer.getGlobal(extraGlobal)))(@observer.varNames())
+      tempExport
 
     #TODO: Are there breeds of patches with their own variables that they own?
     # () => Array[Object]
     exportPatchState: ->
       filterPatch = (patch) ->
-        temp_export = {
+        tempExport = {
           'pxcor': patch.getCoords()[0],
           'pycor': patch.getCoords()[1],
           'pcolor': patch.getVariable("pcolor"),
           'plabel': patch.getVariable("plabel"),
           'plabelColor': patch.getVariable("plabel-color")
         }
+        filterExtraVars = (extraVar) =>
+          if typeof extraVar == 'object'
+            return extraVar.toString()
+          extraVar
         if patch.varNames().length == 5
-          return temp_export
-        pipeline(map((patches_own) -> temp_export[patches_own] = patch.getVariable(patches_own)))(patch.varNames().slice(5))
-        temp_export
+          return tempExport
+        pipeline(map((patchesOwn) -> tempExport[patchesOwn] = filterExtraVars(patch.getVariable(patchesOwn))))(patch.varNames().slice(5))
+        tempExport
       pipeline(map(filterPatch))(@patches().toArray())
 
     #TODO: Export RNG, plots, globals, handle extensions
@@ -386,7 +389,8 @@ module.exports =
         'patches': @exportPatchState(),
         'turtles': @turtleManager.exportState(),
         'links': @linkManager.exportState(),
-        'globals': @exportGlobals()
+        'globals': @exportGlobals(),
+        'randomState': @rng.exportState()
       }
 
     # (WorldState, (Object[Any]) => Unit, (String) => Agent) => Unit

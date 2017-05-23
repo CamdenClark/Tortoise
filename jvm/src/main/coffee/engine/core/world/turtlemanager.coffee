@@ -83,7 +83,7 @@ module.exports =
     #sweet O(1) access and to avoid repetition.
     exportState: ->
       filterTurtles = (turtle) =>
-        temp_export = {
+        tempExport = {
           'who': turtle.getVariable('id'),
           'color': turtle.getVariable('color'),
           'heading': turtle.getVariable('heading'),
@@ -98,8 +98,12 @@ module.exports =
           'penSize': turtle.penManager.getSize(),
           'penMode': turtle.penManager.getMode().toString(),
         }
-        pipeline(map((turtles_own) -> temp_export[turtles_own] = turtle.getVariable(turtles_own)))(turtle['varNames']().slice(13))
-        temp_export
+        filterExtraVars = (extraVar) =>
+          if typeof extraVar == 'object'
+            return extraVar.toString()
+          extraVar
+        pipeline(map((turtlesOwn) -> tempExport[turtlesOwn] = filterExtraVars(turtle.getVariable(turtlesOwn))))(turtle['varNames']().slice(13))
+        tempExport
       pipeline(map(filterTurtles))(@turtles().toArray())
 
     # () => TurtleSet
