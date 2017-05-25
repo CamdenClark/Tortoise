@@ -13,6 +13,8 @@ NLMath          = require('util/nlmath')
 
 { map }               = require('brazierjs/array')
 { pipeline }          = require('brazierjs/function')
+{ keys, values }      = require('brazierjs/object')
+{ isString }          = require('brazierjs/type')
 { TopologyInterrupt } = require('util/exception')
 
 module.exports =
@@ -392,6 +394,62 @@ module.exports =
         'globals': @exportGlobals(),
         'randomState': @rng.exportState()
       }
+
+    exportWorld: ->
+      quoteWrapVals = (str) ->
+        if isString(str)
+          '"""' + str + '"""'
+        else
+          '"' + str + '"'
+      quoteWrap = (str) ->
+        '"' + str + '"'
+      timeStamp = new Date()
+      formatDate = (date) =>
+        values = [
+          date.getMonth() + 1,
+          date.getDay(),
+          date.getFullYear(),
+          date.getHours(),
+          date.getMinutes(),
+          date.getSeconds(),
+          date.getMilliseconds(),
+          if date.getTimezoneOffset() > 0 then '-' else '+',
+          Math.abs(date.getTimezoneOffset() / 60),
+          Math.abs(date.getTimezoneOffset() % 60)
+        ]
+        digits = [2, 2, 4, 2, 2, 2, 3, 0, 2, 2]
+        seperators = ['/', '/', ' ', ':', ':', ':', ' ', '', '', '']
+        res = values.map((value, i) => value.toString().padStart(digits[i], '0') + seperators[i])
+        res.join('')
+      timeStampString = formatDate(timeStamp)
+      offsetHours = timeStamp.getTimezoneOffset() / 60 * 100
+      if offsetHours <= -1000
+        offsetString = "+" + Math.abs(offsetHours)
+      else if offsetHours == 0
+        offsetString = "+0000"
+      else if offsetHours < 0 and offsetHours > -1000
+        offsetString = "+0" + Math.abs(offsetHours)
+      else if offsetHours >= 1000
+        offsetString = "-" + offsetHours
+      else
+        offsetString = "-0" + offsetHours
+      #timeStampString = (timeStamp.getMonth() + 1) + '/' + timeStamp.getDay() +
+      #  '/' + timeStamp.getFullYear() + " " + timeStamp.getHours() + ":" +
+      #  timeStamp.getMinutes() + ":" + timeStamp.getSeconds() + ":" +
+      #  timeStamp.getMilliseconds() + " " + offsetString
+      globs = @exportGlobals()
+      turts = @turtleManager.exportState()
+      exportCSV = '"export-world data (NetLogo Web [IMPLEMENT VERSION])"\n' +
+       '"[IMPLEMENT .NLOGO]"\n' +
+       '"' + timeStampString + '"\n' +
+       '"RANDOM STATE"\n' +
+       quoteWrap(@rng.exportState()) +
+       '\n\n' +
+       quoteWrap('GLOBALS') + '\n' +
+       pipeline(map(quoteWrap))(keys(globs)).join(',') + '\n' +
+       pipeline(map(quoteWrapVals))(values(globs)).join(',') + '\n\n' +
+       pipeline(map(quoteWrap))(keys())
+      exportCSV
 
     # (WorldState, (Object[Any]) => Unit, (String) => Agent) => Unit
     importState: (
