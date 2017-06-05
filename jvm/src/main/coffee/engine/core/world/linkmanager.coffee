@@ -93,24 +93,20 @@ module.exports =
     exportState: ->
       filterLink = (link) ->
         tempExport = {
-          'end1': link.getVariable("end1").toString(),
-          'end2': link.getVariable("end2").toString(),
+          'end1': link.getVariable("end1"),
+          'end2': link.getVariable("end2"),
           'color': link.getVariable("color"),
           'label': link.getVariable("label"),
           'labelColor': link.getVariable("label-color"),
           'isHidden': link.getVariable("hidden?"),
-          'breed': link.getVariable("breed").toString(),
+          'breed': link.getVariable("breed"),
           'thickness': link.getVariable("thickness"),
           'shape': link.getVariable("shape"),
           'tieMode': link.getVariable("tie-mode")
         }
         if link.varNames().length == 10
           return tempExport
-        filterExtraVars = (extraVar) =>
-          if typeof extraVar == 'object'
-            return extraVar.toString()
-          extraVar
-        pipeline(map((linksOwn) -> tempExport[linksOwn] = filterExtraVars(link.getVariable(linksOwn))))(link.varNames().slice(10))
+        pipeline(map((linksOwn) -> tempExport[linksOwn] = link.getVariable(linksOwn)))(link.varNames().slice(10))
         tempExport
       pipeline(map(filterLink))(@links().toArray())
 

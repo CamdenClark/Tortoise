@@ -86,6 +86,9 @@ module.exports =
 
       @_resizeHelper(minPxcor, maxPxcor, minPycor, maxPycor, wrappingAllowedInX, wrappingAllowedInY)
 
+    # () => Breeds
+    breeds: ->
+      @breedManager.breeds()
 
     # () => LinkSet
     links: ->
@@ -354,10 +357,9 @@ module.exports =
         'maxPxcor': @topology.maxPxcor,
         'maxPycor': @topology.maxPycor,
         'perspective': @observer.getPerspective(),
-        'subject': @observer.subject().toString(),
+        'subject': @observer.subject(),
         'ticks': @ticker.tickCount()
       }
-      #console.log(this)
       if @observer.varNames().length == 0
         return tempExport
       pipeline(map((extraGlobal) => tempExport[extraGlobal] = @observer.getGlobal(extraGlobal)))(@observer.varNames())
@@ -374,19 +376,15 @@ module.exports =
           'plabel': patch.getVariable("plabel"),
           'plabelColor': patch.getVariable("plabel-color")
         }
-        filterExtraVars = (extraVar) =>
-          if typeof extraVar == 'object'
-            return extraVar.toString()
-          extraVar
         if patch.varNames().length == 5
           return tempExport
-        pipeline(map((patchesOwn) -> tempExport[patchesOwn] = filterExtraVars(patch.getVariable(patchesOwn))))(patch.varNames().slice(5))
+        pipeline(map((patchesOwn) -> tempExport[patchesOwn] = patch.getVariable(patchesOwn)))(patch.varNames().slice(5))
         tempExport
       pipeline(map(filterPatch))(@patches().toArray())
 
     #TODO: Export RNG, plots, globals, handle extensions
     # () => Object[Array[Object]]
-    exportStateAsJSON: ->
+    exportState: ->
       {
         'patches': @exportPatchState(),
         'turtles': @turtleManager.exportState(),
@@ -394,6 +392,9 @@ module.exports =
         'globals': @exportGlobals(),
         'randomState': @rng.exportState()
       }
+
+    exportWorldAsJSON: ->
+      @exportState()
 
     exportWorld: ->
       quoteWrapVals = (str) ->
@@ -405,7 +406,7 @@ module.exports =
         '"' + str + '"'
       timeStamp = new Date()
       formatDate = (date) =>
-        values = [
+        dateFormat = [
           date.getMonth() + 1,
           date.getDay(),
           date.getFullYear(),
@@ -419,37 +420,35 @@ module.exports =
         ]
         digits = [2, 2, 4, 2, 2, 2, 3, 0, 2, 2]
         seperators = ['/', '/', ' ', ':', ':', ':', ' ', '', '', '']
-        res = values.map((value, i) => value.toString().padStart(digits[i], '0') + seperators[i])
+        res = dateFormat.map((value, i) => value.toString().padStart(digits[i], '0') + seperators[i])
         res.join('')
+      exportedState = @exportState()
       timeStampString = formatDate(timeStamp)
-      offsetHours = timeStamp.getTimezoneOffset() / 60 * 100
-      if offsetHours <= -1000
-        offsetString = "+" + Math.abs(offsetHours)
-      else if offsetHours == 0
-        offsetString = "+0000"
-      else if offsetHours < 0 and offsetHours > -1000
-        offsetString = "+0" + Math.abs(offsetHours)
-      else if offsetHours >= 1000
-        offsetString = "-" + offsetHours
-      else
-        offsetString = "-0" + offsetHours
-      #timeStampString = (timeStamp.getMonth() + 1) + '/' + timeStamp.getDay() +
-      #  '/' + timeStamp.getFullYear() + " " + timeStamp.getHours() + ":" +
-      #  timeStamp.getMinutes() + ":" + timeStamp.getSeconds() + ":" +
-      #  timeStamp.getMilliseconds() + " " + offsetString
-      globs = @exportGlobals()
-      turts = @turtleManager.exportState()
-      exportCSV = '"export-world data (NetLogo Web [IMPLEMENT VERSION])"\n' +
-       '"[IMPLEMENT .NLOGO]"\n' +
-       '"' + timeStampString + '"\n' +
-       '"RANDOM STATE"\n' +
-       quoteWrap(@rng.exportState()) +
-       '\n\n' +
-       quoteWrap('GLOBALS') + '\n' +
-       pipeline(map(quoteWrap))(keys(globs)).join(',') + '\n' +
-       pipeline(map(quoteWrapVals))(values(globs)).join(',') + '\n\n' +
-       pipeline(map(quoteWrap))(keys())
-      exportCSV
+      exportCSV = [
+        '"export-world data (NetLogo Web [IMPLEMENT VERSION])"',
+        '"[IMPLEMENT .NLOGO]"',
+        quoteWrap(timeStampString),
+        '',
+        quoteWrap('RANDOM STATE'),
+        quoteWrap(exportedState['randomState']),
+        '',
+        quoteWrap('GLOBALS'),
+        pipeline(map(quoteWrap))(keys(exportedState['globals'])).join(','),
+        pipeline(map(quoteWrapVals))(values(exportedState['globals'])).join(','),
+        '',
+        quoteWrap('TURTLES'),
+        pipeline(map(quoteWrap))(keys(exportedState['turtles'][0])).join(','),
+        map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n'),
+        '',
+        quoteWrap('PATCHES'),
+        pipeline(map(quoteWrap))(keys(exportedState['patches'][0])).join(','),
+        map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['patches']).join('\n'),
+        '',
+        quoteWrap('LINKS'),
+        pipeline(map(quoteWrap))(keys(exportedState['links'][0])).join(','),
+        map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['links']).join('\n'),
+      ]
+      exportCSV.join('\n')
 
     # (WorldState, (Object[Any]) => Unit, (String) => Agent) => Unit
     importState: (

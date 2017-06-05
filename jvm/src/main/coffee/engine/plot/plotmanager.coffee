@@ -2,7 +2,7 @@
 
 { filter, forEach, map, toObject, zip } = require('brazierjs/array')
 { flip, pipeline }                      = require('brazierjs/function')
-{ values }                              = require('brazierjs/object')
+{ values, pairs }                              = require('brazierjs/object')
 { isNumber }                            = require('brazierjs/type')
 
 module.exports = class PlotManager
@@ -73,6 +73,16 @@ module.exports = class PlotManager
   # (String) => Boolean
   hasPenWithName: (name) ->
     @_withPlot((plot) -> plot.hasPenWithName(name))
+
+  # () => (Array[Array[Object]])
+  exportState: ->
+    temp_plots = @_plotMap
+    handlePlotPair = (plot) ->
+      temp = ['', {}]
+      temp[0] = plot[0]
+      temp[1] = plot[1]
+      temp
+    pipeline(map(handlePlotPair))(pairs(temp_plots))
 
   # (Object[Any]) => Unit
   importState: ({ "default": dfault, plots }) ->

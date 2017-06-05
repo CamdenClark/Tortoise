@@ -84,7 +84,7 @@ module.exports =
     exportState: ->
       filterTurtles = (turtle) =>
         tempExport = {
-          'who': turtle.getVariable('id'),
+          'who': turtle['id'],
           'color': turtle.getVariable('color'),
           'heading': turtle.getVariable('heading'),
           'xcor': turtle.getVariable('xcor'),
@@ -92,17 +92,13 @@ module.exports =
           'shape': turtle.getVariable('shape'),
           'label': turtle.getVariable('label'),
           'labelColor': turtle.getVariable('label-color'),
-          'breed': turtle.getVariable('breed').toString(),
+          'breed': turtle.getVariable('breed'),
           'isHidden': turtle.getVariable('hidden?'),
           'size': turtle.getVariable('size'),
           'penSize': turtle.penManager.getSize(),
-          'penMode': turtle.penManager.getMode().toString(),
+          'penMode': turtle.penManager.getMode(),
         }
-        filterExtraVars = (extraVar) =>
-          if typeof extraVar == 'object'
-            return extraVar.toString()
-          extraVar
-        pipeline(map((turtlesOwn) -> tempExport[turtlesOwn] = filterExtraVars(turtle.getVariable(turtlesOwn))))(turtle['varNames']().slice(13))
+        pipeline(map((turtlesOwn) -> tempExport[turtlesOwn] = turtle.getVariable(turtlesOwn)))(turtle['varNames']().slice(13))
         tempExport
       pipeline(map(filterTurtles))(@turtles().toArray())
 
