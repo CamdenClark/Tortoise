@@ -87,9 +87,9 @@ module.exports =
       @_singularBreeds = pipeline(values, map((b) -> [b.singular, b]), toObject)(@_breeds)
 
     # () => Object[Breed]
-    breeds: () ->
+    breeds: ->
       @_breeds
-      
+
     # (String) => Breed
     get: (name) ->
       @_breeds[name.toUpperCase()]

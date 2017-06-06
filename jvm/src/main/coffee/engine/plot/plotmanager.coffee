@@ -74,15 +74,10 @@ module.exports = class PlotManager
   hasPenWithName: (name) ->
     @_withPlot((plot) -> plot.hasPenWithName(name))
 
-  # () => (Array[Array[Object]])
+  # () => Array[Object]
   exportState: ->
     temp_plots = @_plotMap
-    handlePlotPair = (plot) ->
-      temp = ['', {}]
-      temp[0] = plot[0]
-      temp[1] = plot[1]
-      temp
-    pipeline(map(handlePlotPair))(pairs(temp_plots))
+    map((plot) -> plot.exportState())(values(temp_plots))
 
   # (Object[Any]) => Unit
   importState: ({ "default": dfault, plots }) ->

@@ -94,10 +94,26 @@ module.exports = class Plot
     @setCurrentPen(currentPen)
     return
 
+  exportState: ->
+    tempExport = {
+      'isAutoplotting': @isAutoplotting,
+      'xMin': @xMin,
+      'xMax': @xMax,
+      'yMin': @yMin,
+      'yMax': @yMax,
+      'name': @name,
+      'isLegendOpen': @isLegendEnabled,
+      'pens': map((pen) -> pen.exportState())(values(@penMap())),
+    }
+
   # () => Unit
   lowerPen: ->
     @_withPen((pen) -> pen.lower())
     return
+
+  # () => Object[String, Pen]
+  penMap: ->
+    @_penMap
 
   # (Number, Number) => Unit
   plotPoint: (x, y) ->

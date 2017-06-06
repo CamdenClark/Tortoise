@@ -7,7 +7,7 @@ TurtleSet  = require('../turtleset')
 Builtins   = require('../structure/builtins')
 IDManager  = require('./idmanager')
 
-{ map }        = require('brazierjs/array')
+{ map, concat, unique }        = require('brazierjs/array')
 { pipeline }   = require('brazierjs/function')
 { rangeUntil } = require('brazierjs/number')
 
@@ -82,6 +82,7 @@ module.exports =
     #TODO: Add object hashmap that holds breeds-own variable names for that
     #sweet O(1) access and to avoid repetition.
     exportState: ->
+      allVars = []
       filterTurtles = (turtle) =>
         tempExport = {
           'who': turtle['id'],
@@ -98,7 +99,8 @@ module.exports =
           'penSize': turtle.penManager.getSize(),
           'penMode': turtle.penManager.getMode(),
         }
-        pipeline(map((turtlesOwn) -> tempExport[turtlesOwn] = turtle.getVariable(turtlesOwn)))(turtle['varNames']().slice(13))
+        allVars = unique(concat(allVars)(turtle['varNames']().slice(13)))
+        pipeline(map((turtlesOwn) -> tempExport[turtlesOwn] = turtle.getVariable(turtlesOwn)))(allVars)
         tempExport
       pipeline(map(filterTurtles))(@turtles().toArray())
 

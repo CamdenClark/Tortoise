@@ -11,7 +11,7 @@ TurtleManager   = require('./world/turtlemanager')
 StrictMath      = require('shim/strictmath')
 NLMath          = require('util/nlmath')
 
-{ map }               = require('brazierjs/array')
+{ map, isEmpty }               = require('brazierjs/array')
 { pipeline }          = require('brazierjs/function')
 { keys, values }      = require('brazierjs/object')
 { isString }          = require('brazierjs/type')
@@ -437,6 +437,9 @@ module.exports =
         pipeline(map(quoteWrapVals))(values(exportedState['globals'])).join(','),
         '',
         quoteWrap('TURTLES'),
+        #isEmpty(exportedState['turtles']) ?
+        #pipeline(filter((breed) -> breed.isLinky()))(values(@breedManager.breeds())) :
+        #pipeline(map(quoteWrap))(keys(exportedState['turtles'][0])).join(','),
         pipeline(map(quoteWrap))(keys(exportedState['turtles'][0])).join(','),
         map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n'),
         '',

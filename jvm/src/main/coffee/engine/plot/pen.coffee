@@ -135,6 +135,10 @@ module.exports.Pen = class Pen
   getColor: ->
     @_state.color
 
+  # () => PenMode
+  getPenMode: ->
+    @_state.mode
+
   # () => DisplayMode
   getDisplayMode: ->
     @_state.displayMode
@@ -146,6 +150,16 @@ module.exports.Pen = class Pen
   # () => Array[PlotPoint]
   getPoints: ->
     @_points
+
+  exportState: ->
+    {
+      'interval': @getInterval(),
+      'mode': @getDisplayMode(),
+      'name': @name,
+      'points': @getPoints(),
+      'isPenDown': @getPenMode(),
+      'color': @getColor()
+    }
 
   # (Object[Any]) => Unit
   importState: ({ color: penColor, interval, mode, isPenDown, points, x: penX }) ->
