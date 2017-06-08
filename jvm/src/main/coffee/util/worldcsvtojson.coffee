@@ -151,7 +151,7 @@ arrayParse = ([keys, rows...], schema) ->
         value = row[index]
         if schema[key]?
           obj[key] = schema[key](value)
-        else
+        else if value isnt ""
           obj.extraVars[key] = value
       acc.concat([obj])
 
