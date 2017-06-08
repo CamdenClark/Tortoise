@@ -82,7 +82,6 @@ module.exports =
     #TODO: Add object hashmap that holds breeds-own variable names for that
     #sweet O(1) access and to avoid repetition.
     exportState: ->
-      allVars = []
       filterTurtles = (turtle) =>
         tempExport = {
           'who': turtle['id'],
@@ -99,8 +98,7 @@ module.exports =
           'penSize': turtle.penManager.getSize(),
           'penMode': turtle.penManager.getMode(),
         }
-        allVars = unique(concat(allVars)(turtle['varNames']().slice(13)))
-        pipeline(map((turtlesOwn) -> tempExport[turtlesOwn] = turtle.getVariable(turtlesOwn)))(allVars)
+        pipeline(map((turtlesOwn) -> tempExport[turtlesOwn] = turtle.getVariable(turtlesOwn)))(turtle['varNames']().slice(13))
         tempExport
       pipeline(map(filterTurtles))(@turtles().toArray())
 

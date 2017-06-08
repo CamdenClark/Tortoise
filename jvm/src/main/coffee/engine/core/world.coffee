@@ -11,11 +11,11 @@ TurtleManager   = require('./world/turtlemanager')
 StrictMath      = require('shim/strictmath')
 NLMath          = require('util/nlmath')
 
-{ map, isEmpty }               = require('brazierjs/array')
-{ pipeline }          = require('brazierjs/function')
-{ keys, values }      = require('brazierjs/object')
-{ isString }          = require('brazierjs/type')
-{ TopologyInterrupt } = require('util/exception')
+{ map, isEmpty, flatMap }     = require('brazierjs/array')
+{ pipeline }                  = require('brazierjs/function')
+{ keys, values }              = require('brazierjs/object')
+{ isString }                  = require('brazierjs/type')
+{ TopologyInterrupt }         = require('util/exception')
 
 module.exports =
   class World
@@ -390,7 +390,8 @@ module.exports =
         'turtles': @turtleManager.exportState(),
         'links': @linkManager.exportState(),
         'globals': @exportGlobals(),
-        'randomState': @rng.exportState()
+        'randomState': @rng.exportState(),
+        'plots': @_plotManager.exportState()
       }
 
     exportWorldAsJSON: ->
@@ -437,9 +438,10 @@ module.exports =
         pipeline(map(quoteWrapVals))(values(exportedState['globals'])).join(','),
         '',
         quoteWrap('TURTLES'),
-        #isEmpty(exportedState['turtles']) ?
-        #pipeline(filter((breed) -> breed.isLinky()))(values(@breedManager.breeds())) :
-        #pipeline(map(quoteWrap))(keys(exportedState['turtles'][0])).join(','),
+        (if isEmpty(exportedState['turtles'])
+          pipeline(filter((breed) -> not breed.isLinky()))(values(@breedManager.breeds())).flatMap((x) -> x.varNames)
+        else
+          pipeline(map(quoteWrap))(keys(exportedState['turtles'][0])).join(',')),
         pipeline(map(quoteWrap))(keys(exportedState['turtles'][0])).join(','),
         map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n'),
         '',

@@ -50,6 +50,14 @@ module.exports = class PlotManager
     @_withPlot((plot) -> plot.enableAutoplotting())
     return
 
+  # () => Plot
+  getCurrentPlot: ->
+    @_currentPlot
+
+  # () => Object[String, Plot]
+  getPlots: ->
+    @_plotMap
+
   # () => String
   getPlotName: ->
     @_withPlot((plot) -> plot.name)
@@ -76,8 +84,10 @@ module.exports = class PlotManager
 
   # () => Array[Object]
   exportState: ->
-    temp_plots = @_plotMap
-    map((plot) -> plot.exportState())(values(temp_plots))
+    {
+      'currentPlot': @getCurrentPlot()
+      'plots': map((plot) -> plot.exportState())(values(@getPlots()))
+    }
 
   # (Object[Any]) => Unit
   importState: ({ "default": dfault, plots }) ->
