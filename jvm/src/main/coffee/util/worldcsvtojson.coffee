@@ -277,7 +277,7 @@ module.exports =
 
     world = {}
 
-    for name, bucketParser of buckets
+    for name, bucketParser of buckets when bucketToRows[name]?
       world[name] = bucketParser(bucketToRows[name], nameToSchema[name])
 
     { globals, randomState, turtles, patches, links, output, plots, extensions } = world

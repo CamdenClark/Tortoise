@@ -121,7 +121,9 @@ module.exports =
       finishImportFor(  links, (({ end1, end2, breed }) -> world.linkManager.getLink(end1.id, end2.id, breed.name)), (({  label }) -> [[ 'label',  label]]))
 
       plotManager.importState(plots)
-      outputConfig.write(output)
+
+      if output?
+        outputConfig.write(output)
 
     {
       selfManager
