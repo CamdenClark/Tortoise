@@ -9,17 +9,19 @@ import org.nlogo.tortoise.tags.SlowTest
 
 class TestImportWorld extends DockingSuite {
 
-  private val csvPath = s"${Paths.get("").toAbsolutePath}/resources/test/export-world/pd-two-person-iterated.csv"
-
-  test("Import World Fresh", SlowTest) { implicit fixture => import fixture._
+  test("Import PD - Fresh", SlowTest) { implicit fixture => import fixture._
     open("models/Sample Models/Social Science/Unverified/Prisoner's Dilemma/PD Two Person Iterated.nlogo", None)
-    testCommand(s"""import-world "$csvPath"""")
+    testCommand(s"""import-world "${csvPath("pd-two-person-iterated")}"""")
   }
 
-  test("Import World Clobber", SlowTest) { implicit fixture => import fixture._
+  test("Import PD - Clobber", SlowTest) { implicit fixture => import fixture._
     open("models/Sample Models/Social Science/Unverified/Prisoner's Dilemma/PD Two Person Iterated.nlogo", None)
     testCommand("setup")
-    testCommand(s"""import-world "$csvPath"""")
+    testCommand(s"""import-world "${csvPath("pd-two-person-iterated")}"""")
   }
+
+
+  private def csvPath(name: String): String =
+    s"${Paths.get("").toAbsolutePath}/resources/test/export-world/$name.csv"
 
 }
