@@ -11,7 +11,7 @@ TurtleManager   = require('./world/turtlemanager')
 StrictMath      = require('shim/strictmath')
 NLMath          = require('util/nlmath')
 
-{ map, isEmpty, flatMap }     = require('brazierjs/array')
+{ map, isEmpty, flatMap, filter, concat }     = require('brazierjs/array')
 { pipeline }                  = require('brazierjs/function')
 { keys, values }              = require('brazierjs/object')
 { isString }                  = require('brazierjs/type')
@@ -425,6 +425,23 @@ module.exports =
         res.join('')
       exportedState = @exportState()
       timeStampString = formatDate(timeStamp)
+      linkDefaultVars = ['end1','end2','color','label','label-color','hidden?','breed','thickness','shape','tie-mode']
+      turtleDefaultVars = ['who','color','heading','xcor','ycor','shape','label','labelColor','breed','isHidden','size','penSize','penMode']
+      if isEmpty(exportedState['turtles'])
+        turtleKeys = pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames),
+          concat(turtleDefaultVars), map(quoteWrap))(values(@breedManager.breeds())).join(',')
+        turtleVals = ''
+      else
+        turtleKeys = pipeline(map(quoteWrap))(keys(exportedState['turtles'][0])).join(',')
+        turtleVals = map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n')
+      if isEmpty(exportedState['links'])
+        console.log(values(@breedManager.breeds()))
+        linkKeys = pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames),
+          concat(linkDefaultVars), map(quoteWrap))(values(@breedManager.breeds())).join(',')
+        linkVals = ''
+      else
+        linkKeys = pipeline(map(quoteWrap))(keys(exportedState['links'][0])).join(',')
+        linkVals = map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['links']).join('\n')
       exportCSV = [
         '"export-world data (NetLogo Web [IMPLEMENT VERSION])"',
         '"[IMPLEMENT .NLOGO]"',
@@ -438,20 +455,19 @@ module.exports =
         pipeline(map(quoteWrapVals))(values(exportedState['globals'])).join(','),
         '',
         quoteWrap('TURTLES'),
-        (if isEmpty(exportedState['turtles'])
-          pipeline(filter((breed) -> not breed.isLinky()))(values(@breedManager.breeds())).flatMap((x) -> x.varNames)
-        else
-          pipeline(map(quoteWrap))(keys(exportedState['turtles'][0])).join(',')),
-        pipeline(map(quoteWrap))(keys(exportedState['turtles'][0])).join(','),
-        map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n'),
+        turtleKeys,
+        turtleVals,
         '',
         quoteWrap('PATCHES'),
         pipeline(map(quoteWrap))(keys(exportedState['patches'][0])).join(','),
         map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['patches']).join('\n'),
         '',
         quoteWrap('LINKS'),
-        pipeline(map(quoteWrap))(keys(exportedState['links'][0])).join(','),
-        map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['links']).join('\n'),
+        linkKeys,
+        linkVals,
+        '',
+        quoteWrap('PLOTS'),
+        quoteWrap(exportedState['plots']['currentState'])
       ]
       exportCSV.join('\n')
 
