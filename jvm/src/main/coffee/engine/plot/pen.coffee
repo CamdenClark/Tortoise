@@ -64,6 +64,10 @@ module.exports.State = class State
     return
 
   # () => Number
+  getPenX: ->
+    @_counter._count
+
+  # () => Number
   nextX: ->
     @_counter.next(@interval)
 
@@ -148,17 +152,27 @@ module.exports.Pen = class Pen
     @_state.interval
 
   # () => Array[PlotPoint]
-  getPoints: ->
-    @_points
+  exportPoints: ->
+    handlePoint = (point) ->
+      {
+        'x': point.x,
+        'y': point.y,
+        'color': point.color,
+        'penMode': point.penMode
+      }
+    map(handlePoint)(@_points)
 
   exportState: ->
     {
-      'interval': @getInterval(),
-      'mode': @getDisplayMode(),
-      'name': @name,
-      'points': @getPoints(),
-      'isPenDown': @getPenMode(),
-      'color': @getColor()
+      'vars': {
+        'name': @name,
+        'isPenDown': @getPenMode(),
+        'mode': @getDisplayMode(),
+        'interval': @getInterval(),
+        'color': @getColor(),
+        'x': @_state.getPenX()
+      },
+      'points': @exportPoints()
     }
 
   # (Object[Any]) => Unit

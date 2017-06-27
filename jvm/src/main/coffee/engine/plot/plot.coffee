@@ -94,17 +94,25 @@ module.exports = class Plot
     @setCurrentPen(currentPen)
     return
 
-  exportState: ->
-    tempExport = {
-      'isAutoplotting': @isAutoplotting,
-      'xMin': @xMin,
-      'xMax': @xMax,
-      'yMin': @yMin,
-      'yMax': @yMax,
+  exportState: =>
+    {
       'name': @name,
-      'isLegendOpen': @isLegendEnabled,
-      'pens': map((pen) -> pen.exportState())(values(@penMap())),
+      'vars': {
+        'xMin': @xMin,
+        'xMax': @xMax,
+        'yMin': @yMin,
+        'yMax': @yMax,
+        'isAutoplotting': @isAutoplotting,
+        'currentPen': @getCurrentPen().name,
+        'isLegendOpen': @isLegendEnabled,
+        'numPens': values(@penMap()).length
+      },
+      'pens': map((pen) -> pen.exportState())(values(@penMap()))
     }
+
+  # () => Pen
+  getCurrentPen: ->
+    @_currentPen
 
   # () => Unit
   lowerPen: ->

@@ -353,11 +353,12 @@ module.exports =
     exportGlobals: ->
       tempExport = {
         'minPxcor': @topology.minPxcor,
-        'minPycor': @topology.minPycor,
         'maxPxcor': @topology.maxPxcor,
+        'minPycor': @topology.minPycor,
         'maxPycor': @topology.maxPycor,
         'perspective': @observer.getPerspective(),
         'subject': @observer.subject(),
+        'nextIndex': @turtleManager._idManager.getCount(),
         'ticks': @ticker.tickCount()
       }
       if @observer.varNames().length == 0
@@ -384,11 +385,11 @@ module.exports =
 
     #TODO: Export RNG, plots, globals, handle extensions
     # () => Object[Array[Object]]
-    exportState: ->
+    exportState: =>
       {
         'patches': @exportPatchState(),
-        'turtles': @turtleManager.exportState(),
-        'links': @linkManager.exportState(),
+        'turtles': @turtleManager.exportState(values(@breedManager.breeds())),
+        'links': @linkManager.exportState(values(@breedManager.breeds())),
         'globals': @exportGlobals(),
         'randomState': @rng.exportState(),
         'plots': @_plotManager.exportState()
@@ -400,9 +401,17 @@ module.exports =
     exportWorld: ->
       quoteWrapVals = (str) ->
         if isString(str)
-          '"""' + str + '"""'
+          if str[0] == '{'
+            if str.length > 0
+              return '"' + str + '"'
+            else
+              return '"""' + str + '"""'
+          else
+            return '"""' + str + '"""'
+        else if str?
+          return '"' + str + '"'
         else
-          '"' + str + '"'
+          return str
       quoteWrap = (str) ->
         '"' + str + '"'
       timeStamp = new Date()
@@ -425,24 +434,52 @@ module.exports =
         res.join('')
       exportedState = @exportState()
       timeStampString = formatDate(timeStamp)
-      linkDefaultVars = ['end1','end2','color','label','label-color','hidden?','breed','thickness','shape','tie-mode']
-      turtleDefaultVars = ['who','color','heading','xcor','ycor','shape','label','labelColor','breed','isHidden','size','penSize','penMode']
-      if isEmpty(exportedState['turtles'])
-        turtleKeys = pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames),
-          concat(turtleDefaultVars), map(quoteWrap))(values(@breedManager.breeds())).join(',')
-        turtleVals = ''
-      else
-        turtleKeys = pipeline(map(quoteWrap))(keys(exportedState['turtles'][0])).join(',')
-        turtleVals = map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n')
-      if isEmpty(exportedState['links'])
-        console.log(values(@breedManager.breeds()))
-        linkKeys = pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames),
-          concat(linkDefaultVars), map(quoteWrap))(values(@breedManager.breeds())).join(',')
-        linkVals = ''
-      else
-        linkKeys = pipeline(map(quoteWrap))(keys(exportedState['links'][0])).join(',')
-        linkVals = map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['links']).join('\n')
-      exportCSV = [
+      replaceCamelCase = (varMap) => (label) =>
+        if varMap.hasOwnProperty(label) then varMap[label] else label
+      linkDefaultVars = {
+        'end1': 'end1', 'end2': 'end2', 'color': 'color',
+        'label': 'label', 'labelColor': 'label-color', 'isHidden': 'hidden?',
+        'breed': 'breed', 'thickness': 'thickness', 'shape': 'shape',
+        'tieMode': 'tie-mode'}
+      turtleDefaultVars = {
+        'who': 'who', 'color': 'color', 'heading': 'heading', 'xcor': 'xcor',
+        'ycor': 'ycor', 'shape': 'shape', 'label': 'label', 'labelColor': 'label-color',
+        'breed': 'breed', 'isHidden': 'hidden?', 'size': 'size', 'penSize': 'pen-size',
+        'penMode': 'pen-mode'}
+      patchDefaultVars = {
+        'pxcor': 'pxcor', 'pycor': 'pycor', 'pcolor': 'pcolor', 'plabel': 'plabel', 'plabelColor': 'plabel-color'
+      }
+      globalDefaultVars = {
+        'minPxcor': 'min-pxcor', 'minPycor': 'min-pycor', 'maxPxcor': 'max-pxcor',
+        'maxPycor': 'max-pycor', 'perspective': 'perspective', 'subject': 'subject',
+        'ticks': 'ticks'
+      }
+      plotDefaultVars = {
+        'xMin': 'x min', 'xMax': 'x max', 'yMin': 'y min', 'yMax': 'y max', 'isAutoplotting': 'autoplot?',
+        'currentPen': 'current pen', 'isLegendOpen': 'legend open?', 'numPens': 'number of pens'
+      }
+      penDefaultVars = {
+        'name': 'pen name', 'isPenDown': 'pen down?', 'mode': 'mode', 'interval': 'interval',
+        'color': 'color', 'x': 'x'
+      }
+      pointDefaultVars = { 'x': 'x', 'y': 'y', 'color': 'color', 'penMode': 'pen down?' }
+      csvPlot = (plot) ->
+        [
+          quoteWrapVals(plot['name']),
+          pipeline(map(replaceCamelCase(plotDefaultVars)), map(quoteWrap))(keys(plot['vars'])).join(','),
+          pipeline(map(quoteWrapVals))(values(plot['vars'])).join(','),
+          '',
+          pipeline(map(quoteWrap))(values(penDefaultVars)),
+          map((pen) -> pipeline(map(quoteWrapVals))(values(pen['vars'])).join(','))(plot['pens']).join('\n'),
+          '',
+          map((pen) -> quoteWrapVals(pen['vars']['name']))(plot['pens']).join(',,,,'),
+          flatMap((pen) -> map(quoteWrap)(values(pointDefaultVars)))(plot['pens']).join(','),
+          map((pen) -> map((point) -> [point['x'], point['y'], point['color'], point['penMode']])(pen['points']))(plot['pens']),
+          ''
+        ]
+      if not isEmpty(exportedState['plots']['plots'])
+        plotCSV = concat(['"EXTENSIONS"'])(pipeline(flatMap(csvPlot))(exportedState['plots']['plots']))
+      exportCSV = concat(plotCSV)([
         '"export-world data (NetLogo Web [IMPLEMENT VERSION])"',
         '"[IMPLEMENT .NLOGO]"',
         quoteWrap(timeStampString),
@@ -451,24 +488,24 @@ module.exports =
         quoteWrap(exportedState['randomState']),
         '',
         quoteWrap('GLOBALS'),
-        pipeline(map(quoteWrap))(keys(exportedState['globals'])).join(','),
+        pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportedState['globals'])).join(','),
         pipeline(map(quoteWrapVals))(values(exportedState['globals'])).join(','),
         '',
         quoteWrap('TURTLES'),
-        turtleKeys,
-        turtleVals,
+        concat(pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds())))(map(quoteWrap)(values(turtleDefaultVars))).join(','),
+        map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n'),
         '',
         quoteWrap('PATCHES'),
-        pipeline(map(quoteWrap))(keys(exportedState['patches'][0])).join(','),
+        pipeline(map(replaceCamelCase(patchDefaultVars)), map(quoteWrap))(keys(exportedState['patches'][0])).join(','),
         map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['patches']).join('\n'),
         '',
         quoteWrap('LINKS'),
-        linkKeys,
-        linkVals,
+        concat(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds())))(map(quoteWrap)(values(linkDefaultVars))).join(','),
+        map((link) -> pipeline(map(quoteWrapVals))(values(link)).join(','))(exportedState['links']).join('\n'),
         '',
         quoteWrap('PLOTS'),
-        quoteWrap(exportedState['plots']['currentState'])
-      ]
+        quoteWrap(exportedState['plots']['currentPlot']?.name),
+      ])
       exportCSV.join('\n')
 
     # (WorldState, (Object[Any]) => Unit, (String) => Agent) => Unit

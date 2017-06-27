@@ -7,9 +7,10 @@ TurtleSet  = require('../turtleset')
 Builtins   = require('../structure/builtins')
 IDManager  = require('./idmanager')
 
-{ map, concat, unique }        = require('brazierjs/array')
+{ map, concat, unique, filter, flatMap }        = require('brazierjs/array')
 { pipeline }   = require('brazierjs/function')
 { rangeUntil } = require('brazierjs/number')
+{ values } = require('brazierjs/object')
 
 { DeathInterrupt, ignoring }  = require('util/exception')
 
@@ -81,24 +82,17 @@ module.exports =
     # () => Array[Object]
     #TODO: Add object hashmap that holds breeds-own variable names for that
     #sweet O(1) access and to avoid repetition.
-    exportState: ->
+    exportState: (breeds) ->
+      turtleDefaultVarArr = ['who', 'color', 'heading', 'xcor', 'ycor', 'shape', 'label', 'label-color',
+        'breed', 'hidden?', 'size', 'pen-size', 'pen-mode']
       filterTurtles = (turtle) =>
-        tempExport = {
-          'who': turtle['id'],
-          'color': turtle.getVariable('color'),
-          'heading': turtle.getVariable('heading'),
-          'xcor': turtle.getVariable('xcor'),
-          'ycor': turtle.getVariable('ycor'),
-          'shape': turtle.getVariable('shape'),
-          'label': turtle.getVariable('label'),
-          'labelColor': turtle.getVariable('label-color'),
-          'breed': turtle.getVariable('breed'),
-          'isHidden': turtle.getVariable('hidden?'),
-          'size': turtle.getVariable('size'),
-          'penSize': turtle.penManager.getSize(),
-          'penMode': turtle.penManager.getMode(),
-        }
-        pipeline(map((turtlesOwn) -> tempExport[turtlesOwn] = turtle.getVariable(turtlesOwn)))(turtle['varNames']().slice(13))
+        varList = concat(pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames))(breeds))(turtleDefaultVarArr)
+        tempExport = {}
+        map((turtleVar) -> tempExport[turtleVar] = turtle.getVariable(turtleVar))(varList)
+        if tempExport['breed'].toString() == 'turtles'
+          tempExport['breed'] = '{all-turtles}'
+        else
+          tempExport['breed'] = '{breed ' + tempExport['breed'].toString() + '}'
         tempExport
       pipeline(map(filterTurtles))(@turtles().toArray())
 
