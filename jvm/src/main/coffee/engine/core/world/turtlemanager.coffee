@@ -7,10 +7,10 @@ TurtleSet  = require('../turtleset')
 Builtins   = require('../structure/builtins')
 IDManager  = require('./idmanager')
 
-{ map, concat, unique, filter, flatMap }        = require('brazierjs/array')
-{ pipeline }   = require('brazierjs/function')
-{ rangeUntil } = require('brazierjs/number')
-{ values } = require('brazierjs/object')
+{ map, unique } = require('brazierjs/array')
+{ pipeline }    = require('brazierjs/function')
+{ rangeUntil }  = require('brazierjs/number')
+{ values }      = require('brazierjs/object')
 
 { DeathInterrupt, ignoring }  = require('util/exception')
 
@@ -78,23 +78,6 @@ module.exports =
       )
       @_idManager.importState(nextIndex)
       return
-
-    # () => Array[Object]
-    #TODO: Add object hashmap that holds breeds-own variable names for that
-    #sweet O(1) access and to avoid repetition.
-    exportState: (breeds) ->
-      turtleDefaultVarArr = ['who', 'color', 'heading', 'xcor', 'ycor', 'shape', 'label', 'label-color',
-        'breed', 'hidden?', 'size', 'pen-size', 'pen-mode']
-      filterTurtles = (turtle) =>
-        varList = concat(pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames))(breeds))(turtleDefaultVarArr)
-        tempExport = {}
-        map((turtleVar) -> tempExport[turtleVar] = turtle.getVariable(turtleVar))(varList)
-        if tempExport['breed'].toString() == 'turtles'
-          tempExport['breed'] = '{all-turtles}'
-        else
-          tempExport['breed'] = '{breed ' + tempExport['breed'].toString() + '}'
-        tempExport
-      pipeline(map(filterTurtles))(@turtles().toArray())
 
     # () => TurtleSet
     turtles: ->

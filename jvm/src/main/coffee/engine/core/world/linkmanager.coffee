@@ -10,9 +10,9 @@ IDManager   = require('./idmanager')
 SortedLinks = require('./sortedlinks')
 stableSort  = require('util/stablesort')
 
-{ concat, contains, exists, filter, flatMap, isEmpty, map } = require('brazierjs/array')
-{ pipeline }                               = require('brazierjs/function')
-{ pairs, values }                          = require('brazierjs/object')
+{ concat, contains, exists, filter, isEmpty, map } = require('brazierjs/array')
+{ pipeline }                                       = require('brazierjs/function')
+{ pairs, values }                                  = require('brazierjs/object')
 
 module.exports =
 
@@ -87,22 +87,6 @@ module.exports =
           return
       )
       return
-
-    # () => Array[Object]
-    #TODO: Hashmap for breeds-own variables
-    exportState: (breeds) ->
-      linkDefaultVarArr = ['end1', 'end2', 'color', 'label', 'label-color', 'hidden?',
-        'breed', 'thickness', 'shape', 'tie-mode']
-      filterLink = (link) =>
-        varList = concat(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames))(breeds))(linkDefaultVarArr)
-        tempExport = {}
-        map((linkVar) -> tempExport[linkVar] = link.getVariable(linkVar))(varList)
-        if tempExport['breed'].toString() == 'links'
-          tempExport['breed'] = '{all-links}'
-        else
-          tempExport['breed'] = '{breed ' + tempExport['breed'].toString() + '}'
-        tempExport
-      pipeline(map(filterLink))(@links().toArray())
 
     # () => LinkSet
     links: ->

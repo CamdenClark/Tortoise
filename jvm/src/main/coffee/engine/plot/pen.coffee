@@ -151,17 +151,6 @@ module.exports.Pen = class Pen
   getInterval: ->
     @_state.interval
 
-  # () => Array[PlotPoint]
-  exportPoints: ->
-    handlePoint = (point) ->
-      {
-        'x': point.x,
-        'y': point.y,
-        'color': point.color,
-        'penMode': point.penMode
-      }
-    map(handlePoint)(@_points)
-
   exportState: ->
     {
       'vars': {
@@ -172,7 +161,7 @@ module.exports.Pen = class Pen
         'color': @getColor(),
         'x': @_state.getPenX()
       },
-      'points': @exportPoints()
+      'points': @_points
     }
 
   # (Object[Any]) => Unit

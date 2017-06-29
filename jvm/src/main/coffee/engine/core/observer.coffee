@@ -64,8 +64,8 @@ module.exports =
       @_updatePerspective()
       return
 
-    # () => Integer
-    getPerspective: ->
+    # () => Number
+    getPerspectiveNum: ->
       @_perspective.toInt
 
     # () => Unit

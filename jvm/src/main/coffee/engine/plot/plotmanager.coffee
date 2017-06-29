@@ -2,7 +2,7 @@
 
 { filter, forEach, map, toObject, zip } = require('brazierjs/array')
 { flip, pipeline }                      = require('brazierjs/function')
-{ values, pairs }                              = require('brazierjs/object')
+{ values, pairs }                       = require('brazierjs/object')
 { isNumber }                            = require('brazierjs/type')
 
 module.exports = class PlotManager
@@ -50,14 +50,6 @@ module.exports = class PlotManager
     @_withPlot((plot) -> plot.enableAutoplotting())
     return
 
-  # () => Plot
-  getCurrentPlot: ->
-    @_currentPlot
-
-  # () => Object[String, Plot]
-  getPlots: ->
-    @_plotMap
-
   # () => String
   getPlotName: ->
     @_withPlot((plot) -> plot.name)
@@ -85,8 +77,8 @@ module.exports = class PlotManager
   # () => Array[Object]
   exportState: ->
     {
-      'currentPlot': @getCurrentPlot()
-      'plots': map((plot) -> plot.exportState())(values(@getPlots()))
+      'currentPlot': @_currentPlot
+      'plots': map((plot) -> plot.exportState())(values(@_plotMap))
     }
 
   # (Object[Any]) => Unit

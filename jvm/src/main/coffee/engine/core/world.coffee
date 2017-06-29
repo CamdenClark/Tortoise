@@ -11,11 +11,11 @@ TurtleManager   = require('./world/turtlemanager')
 StrictMath      = require('shim/strictmath')
 NLMath          = require('util/nlmath')
 
-{ map, isEmpty, flatMap, filter, concat }     = require('brazierjs/array')
-{ pipeline }                  = require('brazierjs/function')
-{ keys, values }              = require('brazierjs/object')
-{ isString }                  = require('brazierjs/type')
-{ TopologyInterrupt }         = require('util/exception')
+{ map, isEmpty, flatMap, filter, foldl, concat }     = require('brazierjs/array')
+{ pipeline, flip }                                   = require('brazierjs/function')
+{ keys, values }                                     = require('brazierjs/object')
+{ isString }                                         = require('brazierjs/type')
+{ TopologyInterrupt }                                = require('util/exception')
 
 module.exports =
   class World
@@ -85,10 +85,6 @@ module.exports =
       @_patches = []
 
       @_resizeHelper(minPxcor, maxPxcor, minPycor, maxPycor, wrappingAllowedInX, wrappingAllowedInY)
-
-    # () => Breeds
-    breeds: ->
-      @breedManager.breeds()
 
     # () => LinkSet
     links: ->
@@ -348,48 +344,56 @@ module.exports =
         @_updater.updated(this)("patchesAllBlack")
       return
 
-    #TODO: Find out how to expose the "subject" and min/max pcoordinates.
+    exportAgents: (agents, isThisAgentType, varArr, typeName) ->
+      varList = pipeline(filter(isThisAgentType), flatMap((x) -> x.varNames), flip(concat)(varArr))(values(@breedManager.breeds()))
+      filterAgent = (agent) =>
+        f = (obj, agentVar) ->
+          obj[agentVar] = agent.getVariable(agentVar)
+          obj
+        tempExport = foldl(f)({})(varList)
+        if tempExport.hasOwnProperty('breed')
+          if tempExport['breed'].toString() == typeName
+            tempExport['breed'] = '{all-' + tempExport['breed'].toString() + '}'
+          else
+            tempExport['breed'] = '{breed ' + tempExport['breed'].toString() + '}'
+        tempExport
+      map(filterAgent)(agents)
+
     # () => Object
     exportGlobals: ->
+      directedLinksDefault = () =>
+        if isEmpty(@links().toArray())
+          'NEITHER'
+        else if @breedManager.links()._isDirectedLinkBreed
+          'DIRECTED'
+        else
+          'UNDIRECTED'
       tempExport = {
         'minPxcor': @topology.minPxcor,
         'maxPxcor': @topology.maxPxcor,
         'minPycor': @topology.minPycor,
         'maxPycor': @topology.maxPycor,
-        'perspective': @observer.getPerspective(),
+        'perspective': @observer.getPerspectiveNum(),
         'subject': @observer.subject(),
         'nextIndex': @turtleManager._idManager.getCount(),
+        'directedLinks': directedLinksDefault(),
         'ticks': @ticker.tickCount()
       }
       if @observer.varNames().length == 0
-        return tempExport
-      pipeline(map((extraGlobal) => tempExport[extraGlobal] = @observer.getGlobal(extraGlobal)))(@observer.varNames())
+        tempExport
+      pipeline(map((extraGlobal) => tempExport[extraGlobal] = @observer.getGlobal(extraGlobal)))(@observer.varNames().sort())
       tempExport
 
-    #TODO: Are there breeds of patches with their own variables that they own?
-    # () => Array[Object]
-    exportPatchState: ->
-      filterPatch = (patch) ->
-        tempExport = {
-          'pxcor': patch.getCoords()[0],
-          'pycor': patch.getCoords()[1],
-          'pcolor': patch.getVariable("pcolor"),
-          'plabel': patch.getVariable("plabel"),
-          'plabelColor': patch.getVariable("plabel-color")
-        }
-        if patch.varNames().length == 5
-          return tempExport
-        pipeline(map((patchesOwn) -> tempExport[patchesOwn] = patch.getVariable(patchesOwn)))(patch.varNames().slice(5))
-        tempExport
-      pipeline(map(filterPatch))(@patches().toArray())
-
-    #TODO: Export RNG, plots, globals, handle extensions
     # () => Object[Array[Object]]
-    exportState: =>
+    exportState: ->
+      turtleDefaultVarArr = ['who', 'color', 'heading', 'xcor', 'ycor', 'shape', 'label', 'label-color',
+        'breed', 'hidden?', 'size', 'pen-size', 'pen-mode']
+      linkDefaultVarArr = ['end1', 'end2', 'color', 'label', 'label-color', 'hidden?',
+        'breed', 'thickness', 'shape', 'tie-mode']
       {
-        'patches': @exportPatchState(),
-        'turtles': @turtleManager.exportState(values(@breedManager.breeds())),
-        'links': @linkManager.exportState(values(@breedManager.breeds())),
+        'patches': @exportAgents(@patches().toArray(), (-> false), ['pxcor', 'pycor', 'pcolor', 'plabel', 'plabel-color'], 'patches'),
+        'turtles': @exportAgents(@turtleManager.turtles().toArray(), ((breed) -> not breed.isLinky()), turtleDefaultVarArr, 'turtles'),
+        'links': @exportAgents(@linkManager.links().toArray(), ((breed) -> breed.isLinky()), linkDefaultVarArr, 'links'),
         'globals': @exportGlobals(),
         'randomState': @rng.exportState(),
         'plots': @_plotManager.exportState()
@@ -451,7 +455,7 @@ module.exports =
       }
       globalDefaultVars = {
         'minPxcor': 'min-pxcor', 'minPycor': 'min-pycor', 'maxPxcor': 'max-pxcor',
-        'maxPycor': 'max-pycor', 'perspective': 'perspective', 'subject': 'subject',
+        'maxPycor': 'max-pycor', 'perspective': 'perspective', 'subject': 'subject', 'directedLinks': 'directed-links',
         'ticks': 'ticks'
       }
       plotDefaultVars = {
