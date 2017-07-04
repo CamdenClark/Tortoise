@@ -351,11 +351,14 @@ module.exports =
           obj[agentVar] = agent.getVariable(agentVar)
           obj
         tempExport = foldl(f)({})(varList)
-        if tempExport.hasOwnProperty('breed')
+        if tempExport['breed']?
           if tempExport['breed'].toString() == typeName
             tempExport['breed'] = '{all-' + tempExport['breed'].toString() + '}'
           else
             tempExport['breed'] = '{breed ' + tempExport['breed'].toString() + '}'
+        if typeName == 'links'
+          tempExport['end1'] = tempExport['end1'].toString().replace('(', '{').replace(')', '}')
+          tempExport['end2'] = tempExport['end2'].toString().replace('(', '{').replace(')', '}')
         tempExport
       map(filterAgent)(agents)
 
@@ -369,15 +372,15 @@ module.exports =
         else
           'UNDIRECTED'
       tempExport = {
-        'minPxcor': @topology.minPxcor,
-        'maxPxcor': @topology.maxPxcor,
-        'minPycor': @topology.minPycor,
-        'maxPycor': @topology.maxPycor,
-        'perspective': @observer.getPerspectiveNum(),
-        'subject': @observer.subject(),
-        'nextIndex': @turtleManager._idManager.getCount(),
-        'directedLinks': directedLinksDefault(),
-        'ticks': @ticker.tickCount()
+        minPxcor: @topology.minPxcor,
+        maxPxcor: @topology.maxPxcor,
+        minPycor: @topology.minPycor,
+        maxPycor: @topology.maxPycor,
+        perspective: @observer.getPerspectiveNum(),
+        subject: @observer.subject(),
+        nextIndex: @turtleManager._idManager.getCount(),
+        directedLinks: directedLinksDefault(),
+        ticks: @ticker.tickCount()
       }
       if @observer.varNames().length == 0
         tempExport
@@ -403,6 +406,8 @@ module.exports =
       @exportState()
 
     exportWorld: ->
+      zip = (arrays) ->
+        arrays[0].map((_, i) -> arrays.map((array) -> array[i]))
       quoteWrapVals = (str) ->
         if isString(str)
           if str[0] == '{'
@@ -478,7 +483,7 @@ module.exports =
           '',
           map((pen) -> quoteWrapVals(pen['vars']['name']))(plot['pens']).join(',,,,'),
           flatMap((pen) -> map(quoteWrap)(values(pointDefaultVars)))(plot['pens']).join(','),
-          map((pen) -> map((point) -> [point['x'], point['y'], point['color'], point['penMode']])(pen['points']))(plot['pens']),
+          pipeline(zip, map((row) -> map(map(quoteWrapVals))(row)), map((row) -> row.join(',')))(map((pen) -> map((point) -> [point['x'], point['y'], point['color'], point['penMode']])(pen['points']))(plot['pens'])).join('\n'),
           ''
         ]
       if not isEmpty(exportedState['plots']['plots'])

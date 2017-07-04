@@ -153,15 +153,15 @@ module.exports.Pen = class Pen
 
   exportState: ->
     {
-      'vars': {
-        'name': @name,
-        'isPenDown': @getPenMode(),
-        'mode': @getDisplayMode(),
-        'interval': @getInterval(),
-        'color': @getColor(),
-        'x': @_state.getPenX()
+      vars: {
+        name: @name,
+        isPenDown: @getPenMode(),
+        mode: @getDisplayMode(),
+        interval: @getInterval(),
+        color: @getColor(),
+        x: @_state.getPenX()
       },
-      'points': @_points
+      points: @_points
     }
 
   # (Object[Any]) => Unit

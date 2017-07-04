@@ -1,9 +1,9 @@
 # (C) Uri Wilensky. https://github.com/NetLogo/Tortoise
 
-{ filter, forEach, map, toObject, zip } = require('brazierjs/array')
-{ flip, pipeline }                      = require('brazierjs/function')
-{ values, pairs }                       = require('brazierjs/object')
-{ isNumber }                            = require('brazierjs/type')
+{ filter, forEach, map, toObject, zip, isEmpty } = require('brazierjs/array')
+{ flip, pipeline }                               = require('brazierjs/function')
+{ values, pairs }                                = require('brazierjs/object')
+{ isNumber }                                     = require('brazierjs/type')
 
 module.exports = class PlotManager
 
@@ -74,12 +74,13 @@ module.exports = class PlotManager
   hasPenWithName: (name) ->
     @_withPlot((plot) -> plot.hasPenWithName(name))
 
-  # () => Array[Object]
+  # () => Object[Array[Object]
   exportState: ->
-    {
-      'currentPlot': @_currentPlot
-      'plots': map((plot) -> plot.exportState())(values(@_plotMap))
+    tempExport = {
+      currentPlot: @_currentPlot
+      plots: map((plot) -> plot.exportState())(values(@_plotMap))
     }
+    tempExport
 
   # (Object[Any]) => Unit
   importState: ({ "default": dfault, plots }) ->
