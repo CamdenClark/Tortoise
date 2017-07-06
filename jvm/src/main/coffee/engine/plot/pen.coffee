@@ -151,17 +151,31 @@ module.exports.Pen = class Pen
   getInterval: ->
     @_state.interval
 
+  penDownToBool: (penDown) ->
+    if penDown == Up
+      false
+    else
+      true
+
+  penModeToNum: (mode) ->
+    if mode == Line
+      0
+    else if mode == Bar
+      1
+    else
+      2
+
   exportState: ->
     {
       vars: {
         name: @name,
-        isPenDown: @getPenMode(),
-        mode: @getDisplayMode(),
+        isPenDown: @penDownToBool(@getPenMode()),
+        mode: @penModeToNum(@getDisplayMode()),
         interval: @getInterval(),
         color: @getColor(),
         x: @_state.getPenX()
       },
-      points: @_points
+      points: map((point) => point.penMode = @penDownToBool(point.penMode); point)(@_points)
     }
 
   # (Object[Any]) => Unit

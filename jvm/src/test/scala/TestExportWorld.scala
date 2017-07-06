@@ -69,12 +69,12 @@ class TestExportWorld extends FunSuite {
     }
 
     test(modelTuple._1 + ": Turtle variables exported correctly?") {
-      assertResult(splitExportResultNLD(3).split("\n")(1))(splitExportResultNLW(3).split("\n")(1))
+      assertResult(splitExportResultNLD(3).split("\n"))(splitExportResultNLW(3).split("\n"))
     }
 
     test(modelTuple._1 + ": All turtle values exported correctly?") {
-      assertResult(splitExportResultNLD(3).split("\n").slice(2, 3))(
-        splitExportResultNLW(3).split("\n").slice(2, 3))
+      assertResult(splitExportResultNLD(3).split("\n").slice(2, splitExportResultNLD(3).split("\n").length))(
+        splitExportResultNLW(3).split("\n").slice(2, splitExportResultNLW(3).split("\n").length))
     }
 
     test(modelTuple._1 + ": Patch variables exported correctly?") {
@@ -100,86 +100,13 @@ class TestExportWorld extends FunSuite {
         splitExportResultNLW(6).split("\n"))
     }
 
-    test(modelTuple._1 + ": All plots exported correctly?") {
-      assertResult(splitExportResultNLD(6).split("\n").slice(2, 3))(
-        splitExportResultNLW(6).split("\n").slice(2, 3))
+    if (splitExportResultNLD.length > 7) {
+      if (splitExportResultNLW.length > 7) {
+        test(modelTuple._1 + ": All plots exported correctly?") {
+          assertResult(splitExportResultNLD(7).split("\n"))(
+            splitExportResultNLW(7).split("\n"))
+        }
+      }
     }
   }
-
-  /*
-  var aidsNLDExportResult = scala.util.Try(Resource.asString("/export-world/aidsScalaTest.csv"))
-            .getOrElse("Could not find NLD export-world").trim
-
-  var aidsModel = scala.util.Try(Resource.asString("/dumps/AIDS.js"))
-            .getOrElse("Could not find AIDS model dumps").trim
-
-  var splitAidsNLDExportResult = aidsNLDExportResult.split("\n\n").toArray
-
-  var nashorn = new Nashorn
-  nashorn.eval("""if (!String.prototype.padStart) {
-        String.prototype.padStart = function (max, fillString) {
-          return padStart(this, max, fillString);
-        };
-      }
-
-      function padStart (text, max, mask) {
-        const cur = text.length;
-        if (max <= cur) {
-          return text;
-        }
-        const masked = max - cur;
-        let filler = String(mask) || ' ';
-        while (filler.length < masked) {
-          filler += filler;
-        }
-        const fillerSlice = filler.slice(0, masked);
-        return fillerSlice + text;
-      }""")
-  nashorn.eval("""var workspace   = tortoise_require('engine/workspace')""")
-  nashorn.eval(aidsModel)
-  nashorn.eval("workspace.rng.setSeed(0)")
-  nashorn.eval("procedures.setup()")
-  val aidsNLWExportResult = nashorn.eval("""world.exportWorld()""").asInstanceOf[String]
-  val splitAidsNLWExportResult = aidsNLWExportResult.split("\n\n").toArray
-  //println(aidsNLWExportResult.getClass)
-
-  test("Random state exported the same way?") {
-    assertResult(truncateDecimals(splitAidsNLDExportResult(1)))(splitAidsNLWExportResult(1))
-  }
-
-  test("Global variables exported correctly?") {
-    assertResult(splitAidsNLDExportResult(2).split("\n")(1))(splitAidsNLWExportResult(2).split("\n")(1))
-  }
-
-  test("All global values exported correctly?") {
-    assertResult(splitAidsNLDExportResult(2).split("\n").slice(2, splitAidsNLDExportResult(2).split("\n").length))(
-      splitAidsNLWExportResult(2).split("\n").slice(2, splitAidsNLWExportResult(2).split("\n").length))
-  }
-
-  test("Turtle variables exported correctly?") {
-    assertResult(splitAidsNLDExportResult(3).split("\n")(1))(splitAidsNLWExportResult(3).split("\n")(1))
-  }
-
-  test("All turtle values exported correctly?") {
-    assertResult(splitAidsNLDExportResult(3).split("\n").slice(2, 3))(
-      splitAidsNLWExportResult(3).split("\n").slice(2, 3))
-  }
-
-  test("Patch variables exported correctly?") {
-    assertResult(splitAidsNLDExportResult(4).split("\n")(1))(splitAidsNLWExportResult(4).split("\n")(1))
-  }
-
-  test("All patch values exported correctly?") {
-    assertResult(splitAidsNLDExportResult(4).split("\n").slice(2, 3))(
-      splitAidsNLWExportResult(4).split("\n").slice(2, 3))
-  }
-
-  test("Link variables exported correctly?") {
-    assertResult(splitAidsNLDExportResult(5).split("\n")(1))(splitAidsNLWExportResult(5).split("\n")(1))
-  }
-
-  test("All link values exported correctly?") {
-    assertResult(splitAidsNLDExportResult(5).split("\n").slice(2, 3))(
-      splitAidsNLWExportResult(5).split("\n").slice(2, 3))
-  } */
 }

@@ -79,6 +79,10 @@ module.exports =
       @_idManager.importState(nextIndex)
       return
 
+    # () => Number
+    nextIndex: ->
+      @_idManager.getCount()
+
     # () => TurtleSet
     turtles: ->
       new TurtleSet(@_turtles, "turtles")

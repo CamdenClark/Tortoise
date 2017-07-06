@@ -10,6 +10,7 @@ Ticker          = require('./world/ticker')
 TurtleManager   = require('./world/turtlemanager')
 StrictMath      = require('shim/strictmath')
 NLMath          = require('util/nlmath')
+{ version }     = require('meta')
 
 { map, isEmpty, flatMap, filter, foldl, concat }     = require('brazierjs/array')
 { pipeline, flip }                                   = require('brazierjs/function')
@@ -378,7 +379,7 @@ module.exports =
         maxPycor: @topology.maxPycor,
         perspective: @observer.getPerspectiveNum(),
         subject: @observer.subject(),
-        nextIndex: @turtleManager._idManager.getCount(),
+        nextIndex: @turtleManager.nextIndex(),
         directedLinks: directedLinksDefault(),
         ticks: @ticker.tickCount()
       }
@@ -412,15 +413,15 @@ module.exports =
         if isString(str)
           if str[0] == '{'
             if str.length > 0
-              return '"' + str + '"'
+              '"' + str + '"'
             else
-              return '"""' + str + '"""'
+              '"""' + str + '"""'
           else
-            return '"""' + str + '"""'
+            '"""' + str + '"""'
         else if str?
-          return '"' + str + '"'
+          '"' + str + '"'
         else
-          return str
+          str
       quoteWrap = (str) ->
         '"' + str + '"'
       timeStamp = new Date()
@@ -486,10 +487,9 @@ module.exports =
           pipeline(zip, map((row) -> map(map(quoteWrapVals))(row)), map((row) -> row.join(',')))(map((pen) -> map((point) -> [point['x'], point['y'], point['color'], point['penMode']])(pen['points']))(plot['pens'])).join('\n'),
           ''
         ]
-      if not isEmpty(exportedState['plots']['plots'])
-        plotCSV = concat(['"EXTENSIONS"'])(pipeline(flatMap(csvPlot))(exportedState['plots']['plots']))
+      plotCSV = concat(['"EXTENSIONS"'])(pipeline(flatMap(csvPlot))(exportedState['plots']['plots']))
       exportCSV = concat(plotCSV)([
-        '"export-world data (NetLogo Web [IMPLEMENT VERSION])"',
+        '"export-world data (NetLogo Web ' + version + ')"',
         '"[IMPLEMENT .NLOGO]"',
         quoteWrap(timeStampString),
         '',
@@ -510,10 +510,10 @@ module.exports =
         '',
         quoteWrap('LINKS'),
         concat(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds())))(map(quoteWrap)(values(linkDefaultVars))).join(','),
-        map((link) -> pipeline(map(quoteWrapVals))(values(link)).join(','))(exportedState['links']).join('\n'),
+        if isEmpty(exportedState['links']) then '' else map((link) -> pipeline(map(quoteWrapVals))(values(link)).join(','))(exportedState['links']).join('\n') + '\n',
         '',
         quoteWrap('PLOTS'),
-        quoteWrap(exportedState['plots']['currentPlot']?.name),
+        if exportedState['plots']['currentPlot']? then quoteWrap(exportedState['plots']['currentPlot'].name) else quoteWrap(''),
       ])
       exportCSV.join('\n')
 
