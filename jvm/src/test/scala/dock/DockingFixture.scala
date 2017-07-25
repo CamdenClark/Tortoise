@@ -180,6 +180,11 @@ class DockingFixture(name: String, nashorn: Nashorn) extends Fixture(name) {
 
       JSONAssert.assertEquals(expectedModel, actualModel, /* strict = */ true)
 
+      val headlessCurrentPlot = workspace.plotManager.currentPlot map { _.name }
+      val nashornCurrentPlot = Option(nashorn.eval("world._plotManager._currentPlot.name"))
+
+      assert(headlessCurrentPlot == nashornCurrentPlot, "divergent current plot")
+
       ()
 
     }

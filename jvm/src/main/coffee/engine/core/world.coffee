@@ -12,11 +12,11 @@ StrictMath      = require('shim/strictmath')
 NLMath          = require('util/nlmath')
 { version }     = require('meta')
 
-{ map, isEmpty, flatMap, filter, foldl, concat }     = require('brazierjs/array')
-{ pipeline, flip }                                   = require('brazierjs/function')
-{ keys, values }                                     = require('brazierjs/object')
-{ isString }                                         = require('brazierjs/type')
-{ TopologyInterrupt }                                = require('util/exception')
+{ map, isEmpty, flatMap, filter, foldl, concat, zip, toObject }     = require('brazierjs/array')
+{ pipeline, flip }                                                  = require('brazierjs/function')
+{ keys, values }                                                    = require('brazierjs/object')
+{ isString }                                                        = require('brazierjs/type')
+{ TopologyInterrupt }                                               = require('util/exception')
 
 module.exports =
   class World
@@ -407,7 +407,7 @@ module.exports =
       @exportState()
 
     exportWorld: ->
-      zip = (arrays) ->
+      transform = (arrays) ->
         arrays[0].map((_, i) -> arrays.map((array) -> array[i]))
       quoteWrapVals = (str) ->
         if isString(str)
@@ -484,7 +484,7 @@ module.exports =
           '',
           map((pen) -> quoteWrapVals(pen['vars']['name']))(plot['pens']).join(',,,,'),
           flatMap((pen) -> map(quoteWrap)(values(pointDefaultVars)))(plot['pens']).join(','),
-          pipeline(zip, map((row) -> map(map(quoteWrapVals))(row)), map((row) -> row.join(',')))(map((pen) -> map((point) -> [point['x'], point['y'], point['color'], point['penMode']])(pen['points']))(plot['pens'])).join('\n'),
+          pipeline(transform, map((row) -> map(map(quoteWrapVals))(row)), map((row) -> row.join(',')))(map((pen) -> map((point) -> [point['x'], point['y'], point['color'], point['penMode']])(pen['points']))(plot['pens'])).join('\n'),
           ''
         ]
       plotCSV = concat(['"EXTENSIONS"'])(pipeline(flatMap(csvPlot))(exportedState['plots']['plots']))

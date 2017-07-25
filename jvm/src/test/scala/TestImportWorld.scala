@@ -24,8 +24,8 @@ class TestImportWorld extends FunSuite {
     ("Climate Change", "procedures.setup(); procedures.addCloud(); procedures.addCo2();"))
 
   for ( modelTuple <- modelsToTest ) {
-    //var exportResultNLD = scala.util.Try(Resource.asString("/export-world/exportWorldTest" + modelTuple._1 + ".csv"))
-    //          .getOrElse("Could not find NLD " + modelTuple._1 + ".csv file").trim
+    var exportWorldToImport = scala.util.Try(Resource.asString("/export-world/exportWorldTest" + modelTuple._1 + ".csv"))
+              .getOrElse("Could not find NLD " + modelTuple._1 + ".csv file").trim
 
     var modelDump = scala.util.Try(Resource.asString("/dumps/" + modelTuple._1 + ".js"))
               .getOrElse("Could not find " + modelTuple._1 + " js model dumps").trim
@@ -52,7 +52,7 @@ class TestImportWorld extends FunSuite {
         }""")
     nashorn.eval("""var workspace   = tortoise_require('engine/workspace')""")
     nashorn.eval(modelDump)
-    nashorn.eval(s"""workspace.importWorld('${csvPath(modelTuple._1)}')""")
+    nashorn.eval(s"""workspace.importWorldString('${exportWorldToImport}')""")
     var exportResultNLD = nashorn.eval("""world.exportWorld()""").asInstanceOf[String]
 
     nashorn = new Nashorn
