@@ -85,7 +85,7 @@ exportGlobals = () ->
     subject: @observer.subject(),
     nextIndex: @turtleManager.nextIndex(),
     directedLinks: directedLinksDefault.call(this),
-    ticks: @ticker.tickCount()
+    ticks: if @ticker.ticksAreStarted() then @ticker.tickCount() else -1
   }
   if @observer.varNames().length == 0
     tempExport
