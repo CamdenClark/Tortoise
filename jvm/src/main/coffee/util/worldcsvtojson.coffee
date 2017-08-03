@@ -30,7 +30,7 @@ csvNameToSaneName = (csvName) ->
         str
 
     lowered    = csvName.toLowerCase()
-    camelCased = replaceAll(lowered, /[ \-]+([a-z])/, (str) -> str.toUpperCase())
+    camelCased = replaceAll(lowered, /[ \-]+([a-z0-9])/, (str) -> str.toUpperCase())
 
     qMatch = camelCased.match(/^(\w)(.*)\?$/, )
     if qMatch?
