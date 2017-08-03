@@ -369,14 +369,14 @@ module.exports =
       , turtles
       , userGlobals
       }
-    , reifyLinkEnds, reifySubject) ->
+    , reifyLinkEnds, readFromString) ->
 
       @clearAll()
 
       @rng.importState(rngState)
 
       for key, value of userGlobals
-        @observer.setGlobal(key, value)
+        @observer.setGlobal(key, readFromString(value))
       @ticker.importTicks(ticks)
 
       if directedLinks is "DIRECTED"
@@ -398,7 +398,7 @@ module.exports =
       reifyLinkEnds(links)
       @linkManager.importState(links)
 
-      trueSubject = reifySubject(subject)
+      trueSubject = readFromString(subject)
       if trueSubject isnt Nobody
         @observer.importState(perspective, trueSubject)
 
