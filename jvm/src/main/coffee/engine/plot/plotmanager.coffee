@@ -85,7 +85,8 @@ module.exports = class PlotManager
   # (Object[Any]) => Unit
   importState: ({ "default": dfault, plots }) ->
     plots.forEach((plot) => @_plotMap[plot.name.toUpperCase()].importState(plot))
-    @setCurrentPlot(dfault)
+    if dfault?
+      @setCurrentPlot(dfault)
     return
 
   # () => Boolean
