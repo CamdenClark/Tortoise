@@ -93,7 +93,7 @@ module.exports =
 
       csvText    = fileReader.read(filepath)
       worldState = convertCSV(csvText)
-      { globals, links, patches, plots, output, turtles } = worldState
+      { links, patches, plots, output, turtles } = worldState
 
       # We can safely do breeds beforehand, but not labels or variables or link ends --JAB (4/6/17)
       for turtle in turtles
