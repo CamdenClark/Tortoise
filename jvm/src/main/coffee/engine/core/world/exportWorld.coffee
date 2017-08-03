@@ -7,6 +7,7 @@
 
 exportAgents = (agents, isThisAgentType, varArr, typeName) ->
   varList = pipeline(filter(isThisAgentType), flatMap((x) -> x.varNames), flip(concat)(varArr))(values(@breedManager.breeds()))
+  varList = pipeline(filter(isThisAgentType), flatMap((x) -> x.varNames), concat(varArr))(values(@breedManager.breeds()))
   filterAgent = (agent) =>
     f = (obj, agentVar) ->
       obj[agentVar] = agent.getVariable(agentVar)
@@ -153,8 +154,8 @@ module.exports =
         'maxPycor': 'max-pycor', 'perspective': 'perspective', 'subject': 'subject', 'directedLinks': 'directed-links',
         'ticks': 'ticks'
       }
-      plotCSV = concat(['"EXTENSIONS"'])(flatMap(csvPlot)(exportedState['plots']['plots']))
-      exportCSV = concat(plotCSV)([
+      plotCSV = concat(flatMap(csvPlot)(exportedState['plots']['plots']))(['"EXTENSIONS"'])
+      exportCSV = concat([
         '"export-world data (NetLogo Web ' + version + ')"',
         '"[IMPLEMENT .NLOGO]"',
         quoteWrap(timeStampString),
@@ -167,7 +168,7 @@ module.exports =
         pipeline(map(quoteWrapVals))(values(exportedState['globals'])).join(','),
         '',
         quoteWrap('TURTLES'),
-        concat(pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds())))(map(quoteWrap)(values(turtleDefaultVars))).join(','),
+        concat(map(quoteWrap)(values(turtleDefaultVars)))(pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds()))).join(','),
         map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n'),
         '',
         quoteWrap('PATCHES'),
@@ -175,10 +176,10 @@ module.exports =
         map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['patches']).join('\n'),
         '',
         quoteWrap('LINKS'),
-        concat(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds())))(map(quoteWrap)(values(linkDefaultVars))).join(','),
+        concat(map(quoteWrap)(values(linkDefaultVars)))(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds()))).join(','),
         if isEmpty(exportedState['links']) then '' else map((link) -> pipeline(map(quoteWrapVals))(values(link)).join(','))(exportedState['links']).join('\n') + '\n',
         '',
         quoteWrap('PLOTS'),
         if exportedState['plots']['currentPlot']? then quoteWrap(exportedState['plots']['currentPlot'].name) else quoteWrap(''),
-      ])
+      ])(plotCSV)
       exportCSV.join('\n')

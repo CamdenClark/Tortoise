@@ -26,7 +26,7 @@ RNG              = require('util/rng')
 Timer            = require('util/timer')
 
 { concat, forEach } = require('brazierjs/array')
-{ pipeline        } = require('brazierjs/function')
+{ flip, pipeline  } = require('brazierjs/function')
 { pairs           } = require('brazierjs/object')
 
 { Config: ExportConfig,     Prims: ExportPrims }     = require('./prim/exportprims')
@@ -113,7 +113,7 @@ module.exports =
       finishImportFor = (agents, lookup, genExtras) ->
         for agent in agents
           trueAgent = lookup(agent)
-          pipeline(pairs, concat(genExtras(agent)), forEach(([key, value]) -> trueAgent.setVariable(key, readFromString(value))))(agent.extraVars)
+          pipeline(pairs, flip(concat)(genExtras(agent)), forEach(([key, value]) -> trueAgent.setVariable(key, readFromString(value))))(agent.extraVars)
         return
 
       finishImportFor(turtles, (({ who               }) -> world.turtleManager.getTurtle(who)                     ), (({  label }) -> [[ 'label',  label]]))
