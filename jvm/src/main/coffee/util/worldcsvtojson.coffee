@@ -17,25 +17,31 @@ class WorldState
 # (String) => String
 csvNameToSaneName = (csvName) ->
 
-  replaceAll = (str, regex, f) ->
-    match = str.match(regex)
-    if match?
-      { 0: fullMatch, 1: group, index } = match
-      prefix  = str.slice(0, index)
-      postfix = str.slice(index + fullMatch.length)
-      replaceAll("#{prefix}#{f(group)}#{postfix}", regex, f)
+  if csvName isnt "nextIndex"
+
+    replaceAll = (str, regex, f) ->
+      match = str.match(regex)
+      if match?
+        { 0: fullMatch, 1: group, index } = match
+        prefix  = str.slice(0, index)
+        postfix = str.slice(index + fullMatch.length)
+        replaceAll("#{prefix}#{f(group)}#{postfix}", regex, f)
+      else
+        str
+
+    lowered    = csvName.toLowerCase()
+    camelCased = replaceAll(lowered, /[ \-]+([a-z])/, (str) -> str.toUpperCase())
+
+    qMatch = camelCased.match(/^(\w)(.*)\?$/, )
+    if qMatch?
+      { 1: firstLetter, 2: remainder } = qMatch
+      "is#{firstLetter.toUpperCase()}#{remainder}"
     else
-      str
+      camelCased
 
-  lowered    = csvName.toLowerCase()
-  camelCased = replaceAll(lowered, /[ \-]+([a-z])/, (str) -> str.toUpperCase())
-
-  qMatch = camelCased.match(/^(\w)(.*)\?$/, )
-  if qMatch?
-    { 1: firstLetter, 2: remainder } = qMatch
-    "is#{firstLetter.toUpperCase()}#{remainder}"
   else
-    camelCased
+
+    csvName
 
 
 
