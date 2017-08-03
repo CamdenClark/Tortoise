@@ -147,12 +147,12 @@ arrayParse = ([keys, rows...], schema) ->
     (acc, row) ->
       obj = { extraVars: {} }
       for rawKey, index in keys
-        key   = csvNameToSaneName(rawKey)
-        value = row[index]
-        if schema[key]?
-          obj[key] = schema[key](value)
+        saneKey = csvNameToSaneName(rawKey)
+        value   = row[index]
+        if schema[saneKey]?
+          obj[saneKey] = schema[saneKey](value)
         else if value isnt ""
-          obj.extraVars[key] = value
+          obj.extraVars[rawKey] = value # DO NOT USE `saneKey`!  Do not touch user global names! --JAB (8/2/17)
       acc.concat([obj])
 
   foldl(f)([])(rows)
