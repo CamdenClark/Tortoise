@@ -159,9 +159,7 @@ arrayParse = ([keys, rows...], schema) ->
 
 # Parser[ImpObj]
 globalParse = (csvBucket, schema) ->
-  head = arrayParse(csvBucket, schema)[0]
-  delete head.extraVars
-  head
+  arrayParse(csvBucket, schema)[0]
 
 # Parser[ImpObj]
 plotParse = (csvBucket, schema) ->
@@ -282,7 +280,8 @@ module.exports =
 
     { globals, randomState, turtles, patches, links, output, plots, extensions } = world
 
-    builtInGlobalNames = Object.keys(nameToSchema.globals)
-    [builtInGlobals, userGlobals] = extractGlobals(globals, builtInGlobalNames)
+    userGlobals = globals.extraVars
+    delete globals.extraVars
+    builtInGlobals = globals
 
     new WorldState(builtInGlobals, userGlobals, randomState, turtles, patches, links, output, plots, extensions)
