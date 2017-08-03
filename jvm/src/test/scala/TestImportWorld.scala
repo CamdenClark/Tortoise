@@ -18,8 +18,6 @@ class TestImportWorld extends FunSuite {
   private def csvPath(name: String): String =
     s"${Paths.get("").toAbsolutePath}/resources/test/export-world/exportWorldTest$name.csv"
 
-  val truncateDecimals = (s: String) => s.replaceAllLiterally(".0 ", " ")
-
   val modelsToTest = Array(("AIDS", "procedures.setup()"), ("Network Example", "procedures.setup(); procedures.go(); procedures.go();"),
     ("Climate Change", "procedures.setup(); procedures.addCloud(); procedures.addCo2();"))
 
@@ -81,12 +79,13 @@ class TestImportWorld extends FunSuite {
     nashorn.eval(modelTuple._2)
 
     var exportResultNLW = nashorn.eval("""world.exportWorld()""").asInstanceOf[String]
+
     var splitExportResultNLW = exportResultNLW.split("\n\n").toArray
 
     var splitExportResultNLD = exportResultNLD.split("\n\n").toArray
 
     test(modelTuple._1 + ": Random state exported the same way?") {
-      assertResult(truncateDecimals(splitExportResultNLD(1)))(splitExportResultNLW(1))
+      assertResult(splitExportResultNLD(1))(splitExportResultNLW(1))
     }
 
     test(modelTuple._1 + ": Global variables exported correctly?") {

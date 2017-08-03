@@ -13,8 +13,6 @@ class TestExportWorld extends FunSuite {
 
   //random-seed = 0 on both NLD and NLW
 
-  val truncateDecimals = (s: String) => s.replaceAllLiterally(".0 ", " ")
-
   val modelsToTest = Array(("AIDS", "procedures.setup()"), ("Network Example", "procedures.setup(); procedures.go(); procedures.go();"),
     ("Climate Change", "procedures.setup(); procedures.addCloud(); procedures.addCo2();"))
 
@@ -56,7 +54,7 @@ class TestExportWorld extends FunSuite {
     var splitExportResultNLW = exportResultNLW.split("\n\n").toArray
 
     test(modelTuple._1 + ": Random state exported the same way?") {
-      assertResult(truncateDecimals(splitExportResultNLD(1)))(splitExportResultNLW(1))
+      assertResult(splitExportResultNLD(1))(splitExportResultNLW(1))
     }
 
     test(modelTuple._1 + ": Global variables exported correctly?") {
