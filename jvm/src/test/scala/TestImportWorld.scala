@@ -22,13 +22,13 @@ class TestImportWorld extends FunSuite {
     ("Climate Change", "procedures.setup(); procedures.addCloud(); procedures.addCo2();"))
 
   for ( modelTuple <- modelsToTest ) {
-    var exportWorldToImport = scala.util.Try(Resource.asString("/export-world/exportWorldTest" + modelTuple._1 + ".csv"))
+    var exportResultNLD = scala.util.Try(Resource.asString("/export-world/exportWorldTest" + modelTuple._1 + ".csv"))
               .getOrElse("Could not find NLD " + modelTuple._1 + ".csv file").trim
 
     var modelDump = scala.util.Try(Resource.asString("/dumps/" + modelTuple._1 + ".js"))
               .getOrElse("Could not find " + modelTuple._1 + " js model dumps").trim
 
-    var nashorn = new Nashorn
+    val nashorn = new Nashorn
     nashorn.eval("""if (!String.prototype.padStart) {
           String.prototype.padStart = function (max, fillString) {
             return padStart(this, max, fillString);
@@ -50,34 +50,7 @@ class TestImportWorld extends FunSuite {
         }""")
     nashorn.eval("""var workspace   = tortoise_require('engine/workspace')""")
     nashorn.eval(modelDump)
-    nashorn.eval(s"""workspace.importWorldString('${exportWorldToImport}')""")
-    var exportResultNLD = nashorn.eval("""world.exportWorld()""").asInstanceOf[String]
-
-    nashorn = new Nashorn
-    nashorn.eval("""if (!String.prototype.padStart) {
-          String.prototype.padStart = function (max, fillString) {
-            return padStart(this, max, fillString);
-          };
-        }
-
-        function padStart (text, max, mask) {
-          const cur = text.length;
-          if (max <= cur) {
-            return text;
-          }
-          const masked = max - cur;
-          let filler = String(mask) || ' ';
-          while (filler.length < masked) {
-            filler += filler;
-          }
-          const fillerSlice = filler.slice(0, masked);
-          return fillerSlice + text;
-        }""")
-    nashorn.eval("""var workspace   = tortoise_require('engine/workspace')""")
-    nashorn.eval(modelDump)
-    nashorn.eval("workspace.rng.setSeed(0)")
-    nashorn.eval(modelTuple._2)
-
+    nashorn.eval(s"""workspace.importWorld('${csvPath(modelTuple._1)}')""")
     var exportResultNLW = nashorn.eval("""world.exportWorld()""").asInstanceOf[String]
 
     var splitExportResultNLW = exportResultNLW.split("\n\n").toArray
