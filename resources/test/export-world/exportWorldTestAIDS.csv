@@ -948,7 +948,7 @@
 "Populations"
 """Populations"""
 "x min","x max","y min","y max","autoplot?","current pen","legend open?","number of pens"
-"0","52","0","350","true","""HIV-""","false","3"
+"0","52","0","350","true","""HIV-""","true","3"
 
 "pen name","pen down?","mode","interval","color","x"
 """HIV-""","true","0","1","55","0"
