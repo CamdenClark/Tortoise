@@ -32,7 +32,7 @@ csvNameToSaneName = (csvName) ->
     lowered    = csvName.toLowerCase()
     camelCased = replaceAll(lowered, /[ \-]+([a-z0-9])/, (str) -> str.toUpperCase())
 
-    qMatch = camelCased.match(/^(\w)(.*)\?$/, )
+    qMatch = camelCased.match(/^(\w)(.*)\?$/)
     if qMatch?
       { 1: firstLetter, 2: remainder } = qMatch
       "is#{firstLetter.toUpperCase()}#{remainder}"
