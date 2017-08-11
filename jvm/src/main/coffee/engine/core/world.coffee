@@ -5,12 +5,13 @@ Observer        = require('./observer')
 Patch           = require('./patch')
 PatchSet        = require('./patchset')
 topologyFactory = require('./topology/factory')
-exportWorld     = require('./world/exportWorld')
 LinkManager     = require('./world/linkmanager')
 Ticker          = require('./world/ticker')
 TurtleManager   = require('./world/turtlemanager')
 StrictMath      = require('shim/strictmath')
 NLMath          = require('util/nlmath')
+
+{ exportWorld, exportPlot, exportAllPlots }   = require('./world/exportWorld')
 
 { map, isEmpty, flatMap, filter, foldl, concat, zip, toObject }     = require('brazierjs/array')
 { pipeline, flip }                                                  = require('brazierjs/function')
@@ -349,6 +350,11 @@ module.exports =
     exportWorld: ->
       exportWorld.call(this)
 
+    exportPlot: (name) ->
+      exportPlot.call(this, name)
+
+    exportAllPlots: ->
+      exportAllPlots.call(this)
     # (WorldState, (Object[Any]) => Unit, (String) => Agent) => Unit
     importState: (
       {

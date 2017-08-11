@@ -5,8 +5,22 @@
 { keys, values }                                                    = require('brazierjs/object')
 { isString }                                                        = require('brazierjs/type')
 
+if !String.prototype.padStart
+  String.prototype.padStart = (max, fillString) ->
+    padStart(this, max, fillString)
+
+  padStart = (text, max, mask) ->
+    cur = text.length
+    if max <= cur
+      return text
+    masked = max - cur
+    filler = String(mask) || ' '
+    while (filler.length < masked)
+        filler += filler
+    fillerSlice = filler.slice(0, masked)
+    fillerSlice + text
+
 exportAgents = (agents, isThisAgentType, varArr, typeName) ->
-  varList = pipeline(filter(isThisAgentType), flatMap((x) -> x.varNames), flip(concat)(varArr))(values(@breedManager.breeds()))
   varList = pipeline(filter(isThisAgentType), flatMap((x) -> x.varNames), concat(varArr))(values(@breedManager.breeds()))
   filterAgent = (agent) =>
     f = (obj, agentVar) ->
@@ -131,55 +145,90 @@ csvPlot = (plot) ->
     ''
   ]
 
-module.exports =
-    () ->
-      exportedState = exportState.call(this)
-      timeStampString = formatDate()
+globalDefaultVars = {
+  'minPxcor': 'min-pxcor', 'minPycor': 'min-pycor', 'maxPxcor': 'max-pxcor',
+  'maxPycor': 'max-pycor', 'perspective': 'perspective', 'subject': 'subject', 'directedLinks': 'directed-links',
+  'ticks': 'ticks'
+}
+exportWorld = () ->
+  exportedState = exportState.call(this)
 
-      linkDefaultVars = {
-        'end1': 'end1', 'end2': 'end2', 'color': 'color',
-        'label': 'label', 'labelColor': 'label-color', 'isHidden': 'hidden?',
-        'breed': 'breed', 'thickness': 'thickness', 'shape': 'shape',
-        'tieMode': 'tie-mode'}
-      turtleDefaultVars = {
-        'who': 'who', 'color': 'color', 'heading': 'heading', 'xcor': 'xcor',
-        'ycor': 'ycor', 'shape': 'shape', 'label': 'label', 'labelColor': 'label-color',
-        'breed': 'breed', 'isHidden': 'hidden?', 'size': 'size', 'penSize': 'pen-size',
-        'penMode': 'pen-mode'}
-      patchDefaultVars = {
-        'pxcor': 'pxcor', 'pycor': 'pycor', 'pcolor': 'pcolor', 'plabel': 'plabel', 'plabelColor': 'plabel-color'
-      }
-      globalDefaultVars = {
-        'minPxcor': 'min-pxcor', 'minPycor': 'min-pycor', 'maxPxcor': 'max-pxcor',
-        'maxPycor': 'max-pycor', 'perspective': 'perspective', 'subject': 'subject', 'directedLinks': 'directed-links',
-        'ticks': 'ticks'
-      }
-      plotCSV = concat(flatMap(csvPlot)(exportedState['plots']['plots']))(['"EXTENSIONS"'])
-      exportCSV = concat([
-        '"export-world data (NetLogo Web ' + version + ')"',
-        '"[IMPLEMENT .NLOGO]"',
-        quoteWrap(timeStampString),
-        '',
-        quoteWrap('RANDOM STATE'),
-        quoteWrap(exportedState['randomState']),
-        '',
-        quoteWrap('GLOBALS'),
-        pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportedState['globals'])).join(','),
-        pipeline(map(quoteWrapVals))(values(exportedState['globals'])).join(','),
-        '',
-        quoteWrap('TURTLES'),
-        concat(map(quoteWrap)(values(turtleDefaultVars)))(pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds()))).join(','),
-        map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n'),
-        '',
-        quoteWrap('PATCHES'),
-        pipeline(map(replaceCamelCase(patchDefaultVars)), map(quoteWrap))(keys(exportedState['patches'][0])).join(','),
-        map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['patches']).join('\n'),
-        '',
-        quoteWrap('LINKS'),
-        concat(map(quoteWrap)(values(linkDefaultVars)))(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds()))).join(','),
-        if isEmpty(exportedState['links']) then '' else map((link) -> pipeline(map(quoteWrapVals))(values(link)).join(','))(exportedState['links']).join('\n') + '\n',
-        '',
-        quoteWrap('PLOTS'),
-        if exportedState['plots']['currentPlot']? then quoteWrap(exportedState['plots']['currentPlot'].name) else quoteWrap(''),
-      ])(plotCSV)
-      exportCSV.join('\n')
+  linkDefaultVars = {
+    'end1': 'end1', 'end2': 'end2', 'color': 'color',
+    'label': 'label', 'labelColor': 'label-color', 'isHidden': 'hidden?',
+    'breed': 'breed', 'thickness': 'thickness', 'shape': 'shape',
+    'tieMode': 'tie-mode'}
+  turtleDefaultVars = {
+    'who': 'who', 'color': 'color', 'heading': 'heading', 'xcor': 'xcor',
+    'ycor': 'ycor', 'shape': 'shape', 'label': 'label', 'labelColor': 'label-color',
+    'breed': 'breed', 'isHidden': 'hidden?', 'size': 'size', 'penSize': 'pen-size',
+    'penMode': 'pen-mode'}
+  patchDefaultVars = {
+    'pxcor': 'pxcor', 'pycor': 'pycor', 'pcolor': 'pcolor', 'plabel': 'plabel', 'plabelColor': 'plabel-color'
+  }
+  plotCSV = concat(flatMap(csvPlot)(exportedState['plots']['plots']))(['"EXTENSIONS"'])
+  exportCSV = concat([
+    '"export-world data (NetLogo Web ' + version + ')"',
+    '"[IMPLEMENT .NLOGO]"',
+    quoteWrap(formatDate()),
+    '',
+    quoteWrap('RANDOM STATE'),
+    quoteWrap(exportedState['randomState']),
+    '',
+    quoteWrap('GLOBALS'),
+    pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportedState['globals'])).join(','),
+    pipeline(map(quoteWrapVals))(values(exportedState['globals'])).join(','),
+    '',
+    quoteWrap('TURTLES'),
+    concat(map(quoteWrap)(values(turtleDefaultVars)))(pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds()))).join(','),
+    map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n'),
+    '',
+    quoteWrap('PATCHES'),
+    pipeline(map(replaceCamelCase(patchDefaultVars)), map(quoteWrap))(keys(exportedState['patches'][0])).join(','),
+    map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['patches']).join('\n'),
+    '',
+    quoteWrap('LINKS'),
+    concat(map(quoteWrap)(values(linkDefaultVars)))(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds()))).join(','),
+    if isEmpty(exportedState['links']) then '' else map((link) -> pipeline(map(quoteWrapVals))(values(link)).join(','))(exportedState['links']).join('\n') + '\n',
+    '',
+    quoteWrap('PLOTS'),
+    if exportedState['plots']['currentPlot']? then quoteWrap(exportedState['plots']['currentPlot'].name) else quoteWrap(''),
+  ])(plotCSV)
+  exportCSV.join('\n')
+
+
+
+exportPlot = (plotName) ->
+  defaultExportPlot = [
+    '"export-world data (NetLogo Web ' + version + ')"',
+    '"[IMPLEMENT .NLOGO]"',
+    quoteWrap(formatDate()),
+    '',
+    quoteWrap('GLOBALS'),
+    pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportGlobals.call(this)).slice(8)).join(','),
+    pipeline(map(quoteWrapVals))(values(exportGlobals.call(this)).slice(8)).join(','),
+    ''
+  ]
+  plots = @_plotManager.exportState()
+  desiredPlot = filter((x) -> x.name == plotName)(plots['plots'])
+  if isEmpty(desiredPlot)
+    ''
+  else
+    concat(defaultExportPlot)(csvPlot(desiredPlot[0])).join('\n')
+
+exportAllPlots = () ->
+  defaultExportPlot = [
+    '"export-world data (NetLogo Web ' + version + ')"',
+    '"[IMPLEMENT .NLOGO]"',
+    quoteWrap(formatDate()),
+    '',
+    quoteWrap('GLOBALS'),
+    pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportGlobals.call(this)).slice(8)).join(','),
+    pipeline(map(quoteWrapVals))(values(exportGlobals.call(this)).slice(8)).join(','),
+    ''
+  ]
+  plots = @_plotManager.exportState()
+  #plots['plots']
+  foldl((acc, x) -> concat(acc)(csvPlot(x)))(defaultExportPlot)(plots['plots']).join('\n')
+
+module.exports = { exportPlot, exportAllPlots, exportWorld }
