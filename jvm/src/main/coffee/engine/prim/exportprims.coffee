@@ -2,13 +2,13 @@
 
 module.exports.Config =
   class ExportConfig
-    # {(String -> Unit), (String -> (Unit -> String) -> Unit), (String -> (Unit -> String) -> Unit), (String, String -> (String -> String) -> Unit)} -> ExportConfig
-    constructor: (@exportOutput = (->), @exportWorld = (-> ->), @exportAllPlots = (-> ->), @exportPlot = (-> ->)) ->
+    # {(String -> Unit), (String -> String -> Unit)} -> ExportConfig
+    constructor: (@exportOutput = (->), @exportCSV = (-> ->)) ->
 
 module.exports.Prims =
   class ExportPrims
     # ExportConfig, (Unit -> String), (Unit -> String), (String -> String) -> ExportPrims
-    constructor: ({ @exportOutput, exportWorld, exportAllPlots, exportPlot }, expWorldCB, expAllPlotsCB, expPlotCB) ->
+    constructor: ({ @exportOutput, exportCSV }, expWorldCB, expAllPlotsCB, expPlotCB) ->
         @exportWorld    = (filename)       -> exportCSV(expWorldCB())(filename)
         @exportAllPlots = (filename)       -> exportCSV(expAllPlotsCB())(filename)
         @exportPlot     = (plot, filename) -> exportCSV(expPlotCB(plot))(filename)
