@@ -69,7 +69,7 @@ object Compiler extends CompilerLike {
 
     val interfaceInit = JsStatement("interfaceInit", interfaceGlobalJs, Seq("world", "procedures", "modelConfig"))
     TortoiseLoader.integrateSymbols(init ++ plotConfig ++ procedures
-                                         :+ outputConfig :+ dialogConfig
+                                         :+ outputConfig :+ dialogConfig :+ exportingConfig
                                          :+ fileReaderConfig :+ worldConfig :+ interfaceInit)
   }
 
@@ -200,7 +200,16 @@ object Compiler extends CompilerLike {
     genConfig("world", Map("resizeWorld" -> jsFunction(Seq("agent"))))
 
   private def exportingConfig: JsStatement =
-    genConfig("exporting", Map("output" -> jsFunction(Seq("filename"))))
+    genConfig("exporting", Map("output" -> jsFunction(Seq("filename")),
+      "exportCSV" -> jsFunction(Seq("str"),
+                                """return function(filepath) {
+                                |var Paths = Java.type('java.nio.file.Paths');
+                                |var Files = Java.type('java.nio.file.Files');
+                                |var UTF8  = Java.type('java.nio.charset.StandardCharsets').UTF_8;
+                                |var path  = Files.write(Paths.get(filepath), str.getBytes());
+                                |}""".stripMargin)
+                              )
+                            )
 
   private def genConfig(configName: String, functionDefs: Map[String, String]): JsStatement = {
 

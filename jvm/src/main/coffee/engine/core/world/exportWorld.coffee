@@ -1,6 +1,6 @@
 { version }     = require('meta')
 
-{ map, isEmpty, flatMap, filter, foldl, concat, zip, toObject }     = require('brazierjs/array')
+{ map, isEmpty, flatMap, filter, foldl, concat, zip, toObject, unique }     = require('brazierjs/array')
 { pipeline, flip }                                                  = require('brazierjs/function')
 { keys, values }                                                    = require('brazierjs/object')
 { isString }                                                        = require('brazierjs/type')
@@ -21,7 +21,9 @@ if !String.prototype.padStart
     fillerSlice + text
 
 exportAgents = (agents, isThisAgentType, varArr, typeName) ->
-  varList = pipeline(filter(isThisAgentType), flatMap((x) -> x.varNames), concat(varArr))(values(@breedManager.breeds()))
+  varList = pipeline(filter(isThisAgentType), flatMap((x) -> x.varNames), unique, concat(varArr))(values(@breedManager.breeds()))
+  if typeName == 'patches'
+    varList = agents[0].varNames()
   filterAgent = (agent) =>
     f = (obj, agentVar) ->
       obj[agentVar] = agent.getVariable(agentVar)
@@ -131,6 +133,7 @@ csvPlot = (plot) ->
     'color': 'color', 'x': 'x'
   }
   pointDefaultVars = { 'x': 'x', 'y': 'y', 'color': 'color', 'penMode': 'pen down?' }
+  transposedPens = pipeline(transpose, map((row) -> map(map(quoteWrapVals))(row)), map((row) -> row.join(',')))(map((pen) -> map((point) -> [point['x'], point['y'], point['color'], point['penMode']])(pen['points']))(plot['pens'])).join('\n')
   [
     quoteWrapVals(plot['name']),
     pipeline(map(replaceCamelCase(plotDefaultVars)), map(quoteWrap))(keys(plot['vars'])).join(','),
@@ -141,9 +144,8 @@ csvPlot = (plot) ->
     '',
     map((pen) -> quoteWrapVals(pen['vars']['name']))(plot['pens']).join(',,,,'),
     flatMap((pen) -> map(quoteWrap)(values(pointDefaultVars)))(plot['pens']).join(','),
-    pipeline(transpose, map((row) -> map(map(quoteWrapVals))(row)), map((row) -> row.join(',')))(map((pen) -> map((point) -> [point['x'], point['y'], point['color'], point['penMode']])(pen['points']))(plot['pens'])).join('\n'),
-    ''
-  ]
+    if isEmpty(transposedPens) then '' else transposedPens + '\n'
+    ]
 
 globalDefaultVars = {
   'minPxcor': 'min-pxcor', 'minPycor': 'min-pycor', 'maxPxcor': 'max-pxcor',
@@ -180,17 +182,17 @@ exportWorld = () ->
     pipeline(map(quoteWrapVals))(values(exportedState['globals'])).join(','),
     '',
     quoteWrap('TURTLES'),
-    concat(map(quoteWrap)(values(turtleDefaultVars)))(pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds()))).join(','),
-    map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n'),
-    '',
+    concat(map(quoteWrap)(values(turtleDefaultVars)))(pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap))(values(@breedManager.breeds()))).join(','),
+    if isEmpty(exportedState['turtles']) then '' else map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n') + '\n',
     quoteWrap('PATCHES'),
     pipeline(map(replaceCamelCase(patchDefaultVars)), map(quoteWrap))(keys(exportedState['patches'][0])).join(','),
     map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['patches']).join('\n'),
     '',
     quoteWrap('LINKS'),
-    concat(map(quoteWrap)(values(linkDefaultVars)))(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), map(quoteWrap))(values(@breedManager.breeds()))).join(','),
+    concat(map(quoteWrap)(values(linkDefaultVars)))(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap))(values(@breedManager.breeds()))).join(','),
     if isEmpty(exportedState['links']) then '' else map((link) -> pipeline(map(quoteWrapVals))(values(link)).join(','))(exportedState['links']).join('\n') + '\n',
     '',
+    quoteWrap('OUTPUT'),
     quoteWrap('PLOTS'),
     if exportedState['plots']['currentPlot']? then quoteWrap(exportedState['plots']['currentPlot'].name) else quoteWrap(''),
   ])(plotCSV)

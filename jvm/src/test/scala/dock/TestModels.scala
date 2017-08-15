@@ -4,6 +4,7 @@ package org.nlogo.tortoise
 package dock
 
 import tags.SlowTest
+import org.nlogo.core.Resource
 
 class TestModels extends DockingSuite {
   for(model <- Model.models)
