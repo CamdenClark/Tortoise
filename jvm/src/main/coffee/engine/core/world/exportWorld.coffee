@@ -5,6 +5,7 @@
 { keys, values }                                                    = require('brazierjs/object')
 { isString }                                                        = require('brazierjs/type')
 
+# Polyfill for padStart prototype (ES2017 addition)... --CC 8/14/17
 if !String.prototype.padStart
   String.prototype.padStart = (max, fillString) ->
     padStart(this, max, fillString)
@@ -19,7 +20,79 @@ if !String.prototype.padStart
         filler += filler
     fillerSlice = filler.slice(0, masked)
     fillerSlice + text
+#End polyfill..
 
+globalDefaultVars = {
+  'minPxcor': 'min-pxcor', 'minPycor': 'min-pycor', 'maxPxcor': 'max-pxcor',
+  'maxPycor': 'max-pycor', 'perspective': 'perspective', 'subject': 'subject', 'directedLinks': 'directed-links',
+  'ticks': 'ticks'
+}
+
+turtleDefaultVarArr = ['who', 'color', 'heading', 'xcor', 'ycor', 'shape', 'label', 'label-color',
+  'breed', 'hidden?', 'size', 'pen-size', 'pen-mode']
+linkDefaultVarArr = ['end1', 'end2', 'color', 'label', 'label-color', 'hidden?',
+  'breed', 'thickness', 'shape', 'tie-mode']
+
+
+#Begin utility functions.
+#These don't look at the world state. -- CC 8/14/17
+
+# () => String
+formatDate = () ->
+  date = new Date()
+  dateFormat = [
+    date.getMonth() + 1,
+    date.getDay(),
+    date.getFullYear(),
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds(),
+    date.getMilliseconds(),
+    if date.getTimezoneOffset() > 0 then '-' else '+',
+    Math.abs(date.getTimezoneOffset() / 60),
+    Math.abs(date.getTimezoneOffset() % 60)
+  ]
+  digits = [2, 2, 4, 2, 2, 2, 3, 0, 2, 2]
+  seperators = ['/', '/', ' ', ':', ':', ':', ' ', '', '', '']
+  res = dateFormat.map((value, i) => value.toString().padStart(digits[i], '0') + seperators[i])
+  res.join('')
+
+# (String) -> String
+quoteWrap = (str) ->
+  '"' + str + '"'
+
+# (String) => String
+quoteWrapVals = (str) ->
+  if isString(str)
+    if str[0] == '{'
+      if str.length > 0
+        '"' + str + '"'
+      else
+        '"""' + str + '"""'
+    else
+      '"""' + str + '"""'
+  else if str?
+    '"' + str + '"'
+  else
+    str
+
+# ((Object) => String) => String
+replaceCamelCase = (varMap) -> (label) ->
+  if varMap.hasOwnProperty(label) then varMap[label] else label
+
+# (Array[Array[Any]]) => Array[Array[Any]]
+transpose = (arrays) ->
+  arrays[0].map((_, i) -> arrays.map((array) -> array[i]))
+
+# exportAgents is a utility function because the method for transferring
+# from state to desirable objects for turtles, links, and plots
+# are highly similar. Therefore, we created one function that takes
+# an agent-set, a function to determine whether a breed is of a certain
+# agent-type, a default variable array, and the agent type. It spits out
+# an array of objects that are fed to the exportWorld function (which the
+# output of which turns into a CSV on the browser side). --CC 8/14/2017
+
+# (Array[Object], (String -> Boolean), Array[String], String) => Array[Object]
 exportAgents = (agents, isThisAgentType, varArr, typeName) ->
   varList = pipeline(filter(isThisAgentType), flatMap((x) -> x.varNames), unique, concat(varArr))(values(@breedManager.breeds()))
   if typeName == 'patches'
@@ -40,45 +113,11 @@ exportAgents = (agents, isThisAgentType, varArr, typeName) ->
     tempExport
   map(filterAgent)(agents)
 
-replaceCamelCase = (varMap) -> (label) ->
-  if varMap.hasOwnProperty(label) then varMap[label] else label
+#End utility functions.
 
-quoteWrapVals = (str) ->
-  if isString(str)
-    if str[0] == '{'
-      if str.length > 0
-        '"' + str + '"'
-      else
-        '"""' + str + '"""'
-    else
-      '"""' + str + '"""'
-  else if str?
-    '"' + str + '"'
-  else
-    str
+#The following functions all look at the world state.
 
-quoteWrap = (str) ->
-  '"' + str + '"'
-
-formatDate = () ->
-  date = new Date()
-  dateFormat = [
-    date.getMonth() + 1,
-    date.getDay(),
-    date.getFullYear(),
-    date.getHours(),
-    date.getMinutes(),
-    date.getSeconds(),
-    date.getMilliseconds(),
-    if date.getTimezoneOffset() > 0 then '-' else '+',
-    Math.abs(date.getTimezoneOffset() / 60),
-    Math.abs(date.getTimezoneOffset() % 60)
-  ]
-  digits = [2, 2, 4, 2, 2, 2, 3, 0, 2, 2]
-  seperators = ['/', '/', ' ', ':', ':', ':', ' ', '', '', '']
-  res = dateFormat.map((value, i) => value.toString().padStart(digits[i], '0') + seperators[i])
-  res.join('')
-
+# () => String
 directedLinksDefault = () ->
   if isEmpty(@links().toArray())
     'NEITHER'
@@ -86,9 +125,6 @@ directedLinksDefault = () ->
     'DIRECTED'
   else
     'UNDIRECTED'
-
-transpose = (arrays) ->
-  arrays[0].map((_, i) -> arrays.map((array) -> array[i]))
 
 # () => Object
 exportGlobals = () ->
@@ -123,6 +159,7 @@ exportState = () ->
     'plots': @_plotManager.exportState()
   }
 
+# (Object) => Array[String]
 csvPlot = (plot) ->
   plotDefaultVars = {
     'xMin': 'x min', 'xMax': 'x max', 'yMin': 'y min', 'yMax': 'y max', 'isAutoplotting': 'autoplot?',
@@ -145,13 +182,43 @@ csvPlot = (plot) ->
     map((pen) -> quoteWrapVals(pen['vars']['name']))(plot['pens']).join(',,,,'),
     flatMap((pen) -> map(quoteWrap)(values(pointDefaultVars)))(plot['pens']).join(','),
     if isEmpty(transposedPens) then '' else transposedPens + '\n'
-    ]
+  ]
 
-globalDefaultVars = {
-  'minPxcor': 'min-pxcor', 'minPycor': 'min-pycor', 'maxPxcor': 'max-pxcor',
-  'maxPycor': 'max-pycor', 'perspective': 'perspective', 'subject': 'subject', 'directedLinks': 'directed-links',
-  'ticks': 'ticks'
-}
+# (String) => String
+exportPlot = (plotName) ->
+  defaultExportPlot = [
+    '"export-world data (NetLogo Web ' + version + ')"',
+    '"[IMPLEMENT .NLOGO]"',
+    quoteWrap(formatDate()),
+    '',
+    quoteWrap('GLOBALS'),
+    pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportGlobals.call(this)).slice(8)).join(','),
+    pipeline(map(quoteWrapVals))(values(exportGlobals.call(this)).slice(8)).join(','),
+    ''
+  ]
+  plots = @_plotManager.exportState()
+  desiredPlot = filter((x) -> x.name == plotName)(plots['plots'])
+  if isEmpty(desiredPlot)
+    ''
+  else
+    concat(defaultExportPlot)(csvPlot(desiredPlot[0])).join('\n')
+
+# () => String
+exportAllPlots = () ->
+  defaultExportPlot = [
+    '"export-world data (NetLogo Web ' + version + ')"',
+    '"[IMPLEMENT .NLOGO]"',
+    quoteWrap(formatDate()),
+    '',
+    quoteWrap('GLOBALS'),
+    pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportGlobals.call(this)).slice(8)).join(','),
+    pipeline(map(quoteWrapVals))(values(exportGlobals.call(this)).slice(8)).join(','),
+    ''
+  ]
+  plots = @_plotManager.exportState()
+  foldl((acc, x) -> concat(acc)(csvPlot(x)))(defaultExportPlot)(plots['plots']).join('\n')
+
+# () => String
 exportWorld = () ->
   exportedState = exportState.call(this)
 
@@ -198,39 +265,5 @@ exportWorld = () ->
   ])(plotCSV)
   exportCSV.join('\n')
 
-
-
-exportPlot = (plotName) ->
-  defaultExportPlot = [
-    '"export-world data (NetLogo Web ' + version + ')"',
-    '"[IMPLEMENT .NLOGO]"',
-    quoteWrap(formatDate()),
-    '',
-    quoteWrap('GLOBALS'),
-    pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportGlobals.call(this)).slice(8)).join(','),
-    pipeline(map(quoteWrapVals))(values(exportGlobals.call(this)).slice(8)).join(','),
-    ''
-  ]
-  plots = @_plotManager.exportState()
-  desiredPlot = filter((x) -> x.name == plotName)(plots['plots'])
-  if isEmpty(desiredPlot)
-    ''
-  else
-    concat(defaultExportPlot)(csvPlot(desiredPlot[0])).join('\n')
-
-exportAllPlots = () ->
-  defaultExportPlot = [
-    '"export-world data (NetLogo Web ' + version + ')"',
-    '"[IMPLEMENT .NLOGO]"',
-    quoteWrap(formatDate()),
-    '',
-    quoteWrap('GLOBALS'),
-    pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportGlobals.call(this)).slice(8)).join(','),
-    pipeline(map(quoteWrapVals))(values(exportGlobals.call(this)).slice(8)).join(','),
-    ''
-  ]
-  plots = @_plotManager.exportState()
-  #plots['plots']
-  foldl((acc, x) -> concat(acc)(csvPlot(x)))(defaultExportPlot)(plots['plots']).join('\n')
 
 module.exports = { exportPlot, exportAllPlots, exportWorld }
