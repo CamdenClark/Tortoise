@@ -1,9 +1,25 @@
 { version }     = require('meta')
 
-{ map, isEmpty, flatMap, filter, foldl, concat, zip, toObject, unique }     = require('brazierjs/array')
-{ pipeline, flip }                                                  = require('brazierjs/function')
-{ keys, values }                                                    = require('brazierjs/object')
-{ isString }                                                        = require('brazierjs/type')
+{ concat, filter, flatMap, foldl, isEmpty, map, toObject, unique, zip }  = require('brazierjs/array')
+{ flip, pipeline }                                                       = require('brazierjs/function')
+{ keys, values }                                                         = require('brazierjs/object')
+{ isString }                                                             = require('brazierjs/type')
+
+globalDefaultVars   = {
+  'minPxcor': 'min-pxcor', 'minPycor': 'min-pycor', 'maxPxcor': 'max-pxcor',
+  'maxPycor': 'max-pycor', 'perspective': 'perspective', 'subject': 'subject', 'directedLinks': 'directed-links',
+  'ticks': 'ticks'
+}
+
+linkDefaultVarArr   = [
+  'end1', 'end2', 'color', 'label', 'label-color', 'hidden?',
+  'breed', 'thickness', 'shape', 'tie-mode'
+]
+
+turtleDefaultVarArr = [
+  'who', 'color', 'heading', 'xcor', 'ycor', 'shape', 'label', 'label-color',
+  'breed', 'hidden?', 'size', 'pen-size', 'pen-mode'
+]
 
 # Polyfill for padStart prototype (ES2017 addition)... --CC 8/14/17
 if !String.prototype.padStart
@@ -22,20 +38,11 @@ if !String.prototype.padStart
     fillerSlice + text
 #End polyfill..
 
-globalDefaultVars = {
-  'minPxcor': 'min-pxcor', 'minPycor': 'min-pycor', 'maxPxcor': 'max-pxcor',
-  'maxPycor': 'max-pycor', 'perspective': 'perspective', 'subject': 'subject', 'directedLinks': 'directed-links',
-  'ticks': 'ticks'
-}
-
-turtleDefaultVarArr = ['who', 'color', 'heading', 'xcor', 'ycor', 'shape', 'label', 'label-color',
-  'breed', 'hidden?', 'size', 'pen-size', 'pen-mode']
-linkDefaultVarArr = ['end1', 'end2', 'color', 'label', 'label-color', 'hidden?',
-  'breed', 'thickness', 'shape', 'tie-mode']
-
-
 #Begin utility functions.
 #These don't look at the world state. -- CC 8/14/17
+
+# Thanks to user "le_m" for graciously providing a much better
+# solution to this problem. https://codereview.stackexchange.com/a/164141/139601
 
 # () => String
 formatDate = () ->
@@ -83,6 +90,40 @@ replaceCamelCase = (varMap) -> (label) ->
 # (Array[Array[Any]]) => Array[Array[Any]]
 transpose = (arrays) ->
   arrays[0].map((_, i) -> arrays.map((array) -> array[i]))
+
+# csvPlot takes a plot object from plotManager.exportState() and
+# returns an array of strings that will be join('\n')ed when creating
+# the CSV
+
+# (Object) => Array[String]
+csvPlot = (plot) ->
+  plotDefaultVars = {
+    'xMin': 'x min', 'xMax': 'x max', 'yMin': 'y min', 'yMax': 'y max', 'isAutoplotting': 'autoplot?',
+    'currentPen': 'current pen', 'isLegendOpen': 'legend open?', 'numPens': 'number of pens'
+  }
+  penDefaultVars = {
+    'name': 'pen name', 'isPenDown': 'pen down?', 'mode': 'mode', 'interval': 'interval',
+    'color': 'color', 'x': 'x'
+  }
+  pointDefaultVars = { 'x': 'x', 'y': 'y', 'color': 'color', 'penMode': 'pen down?' }
+
+  # Whoa, what's going on here? NetLogo demands we have the points in a specific
+  # format, which happens to be the transpose of the matrix of points as stored
+  # in the world state. *shrugs* --CC 8/14/17
+
+  transposedPens = pipeline(transpose, map((row) -> map(map(quoteWrapVals))(row)), map((row) -> row.join(',')))(map((pen) -> map((point) -> [point['x'], point['y'], point['color'], point['penMode']])(pen['points']))(plot['pens'])).join('\n')
+  [
+    quoteWrapVals(plot['name']),
+    pipeline(map(replaceCamelCase(plotDefaultVars)), map(quoteWrap))(keys(plot['vars'])).join(','),
+    pipeline(values, map(quoteWrapVals))(plot['vars']).join(','),
+    '',
+    pipeline(values, map(quoteWrap))(penDefaultVars),
+    map((pen) -> pipeline(map(quoteWrapVals))(values(pen['vars'])).join(','))(plot['pens']).join('\n'),
+    '',
+    map((pen) -> quoteWrapVals(pen['vars']['name']))(plot['pens']).join(',,,,'),
+    flatMap((pen) -> map(quoteWrap)(values(pointDefaultVars)))(plot['pens']).join(','),
+    if isEmpty(transposedPens) then '' else transposedPens + '\n'
+  ]
 
 # exportAgents is a utility function because the method for transferring
 # from state to desirable objects for turtles, links, and plots
@@ -146,10 +187,6 @@ exportGlobals = () ->
 
 # () => Object[Array[Object]]
 exportState = () ->
-  turtleDefaultVarArr = ['who', 'color', 'heading', 'xcor', 'ycor', 'shape', 'label', 'label-color',
-    'breed', 'hidden?', 'size', 'pen-size', 'pen-mode']
-  linkDefaultVarArr = ['end1', 'end2', 'color', 'label', 'label-color', 'hidden?',
-    'breed', 'thickness', 'shape', 'tie-mode']
   {
     'patches': exportAgents.call(this, @patches().toArray(), (-> false), ['pxcor', 'pycor', 'pcolor', 'plabel', 'plabel-color'], 'patches'),
     'turtles': exportAgents.call(this, @turtleManager.turtles().toArray(), ((breed) -> not breed.isLinky()), turtleDefaultVarArr, 'turtles'),
@@ -158,31 +195,6 @@ exportState = () ->
     'randomState': @rng.exportState(),
     'plots': @_plotManager.exportState()
   }
-
-# (Object) => Array[String]
-csvPlot = (plot) ->
-  plotDefaultVars = {
-    'xMin': 'x min', 'xMax': 'x max', 'yMin': 'y min', 'yMax': 'y max', 'isAutoplotting': 'autoplot?',
-    'currentPen': 'current pen', 'isLegendOpen': 'legend open?', 'numPens': 'number of pens'
-  }
-  penDefaultVars = {
-    'name': 'pen name', 'isPenDown': 'pen down?', 'mode': 'mode', 'interval': 'interval',
-    'color': 'color', 'x': 'x'
-  }
-  pointDefaultVars = { 'x': 'x', 'y': 'y', 'color': 'color', 'penMode': 'pen down?' }
-  transposedPens = pipeline(transpose, map((row) -> map(map(quoteWrapVals))(row)), map((row) -> row.join(',')))(map((pen) -> map((point) -> [point['x'], point['y'], point['color'], point['penMode']])(pen['points']))(plot['pens'])).join('\n')
-  [
-    quoteWrapVals(plot['name']),
-    pipeline(map(replaceCamelCase(plotDefaultVars)), map(quoteWrap))(keys(plot['vars'])).join(','),
-    pipeline(values, map(quoteWrapVals))(plot['vars']).join(','),
-    '',
-    pipeline(values, map(quoteWrap))(penDefaultVars),
-    map((pen) -> pipeline(map(quoteWrapVals))(values(pen['vars'])).join(','))(plot['pens']).join('\n'),
-    '',
-    map((pen) -> quoteWrapVals(pen['vars']['name']))(plot['pens']).join(',,,,'),
-    flatMap((pen) -> map(quoteWrap)(values(pointDefaultVars)))(plot['pens']).join(','),
-    if isEmpty(transposedPens) then '' else transposedPens + '\n'
-  ]
 
 # (String) => String
 exportPlot = (plotName) ->
@@ -193,7 +205,7 @@ exportPlot = (plotName) ->
     '',
     quoteWrap('GLOBALS'),
     pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportGlobals.call(this)).slice(8)).join(','),
-    pipeline(map(quoteWrapVals))(values(exportGlobals.call(this)).slice(8)).join(','),
+    map(quoteWrapVals)(values(exportGlobals.call(this)).slice(8)).join(','),
     ''
   ]
   plots = @_plotManager.exportState()
@@ -212,7 +224,7 @@ exportAllPlots = () ->
     '',
     quoteWrap('GLOBALS'),
     pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportGlobals.call(this)).slice(8)).join(','),
-    pipeline(map(quoteWrapVals))(values(exportGlobals.call(this)).slice(8)).join(','),
+    map(quoteWrapVals)(values(exportGlobals.call(this)).slice(8)).join(','),
     ''
   ]
   plots = @_plotManager.exportState()
@@ -222,19 +234,6 @@ exportAllPlots = () ->
 exportWorld = () ->
   exportedState = exportState.call(this)
 
-  linkDefaultVars = {
-    'end1': 'end1', 'end2': 'end2', 'color': 'color',
-    'label': 'label', 'labelColor': 'label-color', 'isHidden': 'hidden?',
-    'breed': 'breed', 'thickness': 'thickness', 'shape': 'shape',
-    'tieMode': 'tie-mode'}
-  turtleDefaultVars = {
-    'who': 'who', 'color': 'color', 'heading': 'heading', 'xcor': 'xcor',
-    'ycor': 'ycor', 'shape': 'shape', 'label': 'label', 'labelColor': 'label-color',
-    'breed': 'breed', 'isHidden': 'hidden?', 'size': 'size', 'penSize': 'pen-size',
-    'penMode': 'pen-mode'}
-  patchDefaultVars = {
-    'pxcor': 'pxcor', 'pycor': 'pycor', 'pcolor': 'pcolor', 'plabel': 'plabel', 'plabelColor': 'plabel-color'
-  }
   plotCSV = concat(flatMap(csvPlot)(exportedState['plots']['plots']))(['"EXTENSIONS"'])
   exportCSV = concat([
     '"export-world data (NetLogo Web ' + version + ')"',
@@ -246,17 +245,17 @@ exportWorld = () ->
     '',
     quoteWrap('GLOBALS'),
     pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportedState['globals'])).join(','),
-    pipeline(map(quoteWrapVals))(values(exportedState['globals'])).join(','),
+    map(quoteWrapVals)(values(exportedState['globals'])).join(','),
     '',
     quoteWrap('TURTLES'),
-    concat(map(quoteWrap)(values(turtleDefaultVars)))(pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap))(values(@breedManager.breeds()))).join(','),
+    concat(map(quoteWrap)(turtleDefaultVarArr))(pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap))(values(@breedManager.breeds()))).join(','),
     if isEmpty(exportedState['turtles']) then '' else map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n') + '\n',
     quoteWrap('PATCHES'),
-    pipeline(map(replaceCamelCase(patchDefaultVars)), map(quoteWrap))(keys(exportedState['patches'][0])).join(','),
+    map(quoteWrap)(keys(exportedState['patches'][0])).join(','),
     map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['patches']).join('\n'),
     '',
     quoteWrap('LINKS'),
-    concat(map(quoteWrap)(values(linkDefaultVars)))(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap))(values(@breedManager.breeds()))).join(','),
+    concat(map(quoteWrap)(linkDefaultVarArr))(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap))(values(@breedManager.breeds()))).join(','),
     if isEmpty(exportedState['links']) then '' else map((link) -> pipeline(map(quoteWrapVals))(values(link)).join(','))(exportedState['links']).join('\n') + '\n',
     '',
     quoteWrap('OUTPUT'),
