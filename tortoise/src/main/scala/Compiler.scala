@@ -211,6 +211,9 @@ object Compiler extends CompilerLike {
                               )
                             )
 
+  private def importingConfig: JsStatement =
+    genConfig("importing", Map("importWorld" -> jsFunction(Seq("file"))))
+
   private def genConfig(configName: String, functionDefs: Map[String, String]): JsStatement = {
 
     val configPath = s"modelConfig.$configName"
