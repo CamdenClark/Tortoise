@@ -72,7 +72,7 @@ module.exports =
     listPrims       = new ListPrims(Hasher, prims.equality.bind(prims), rng.nextInt)
 
     exportPrims     = new ExportPrims(exportConfig, (-> world.exportWorld()), (-> world.exportAllPlots()), (plot) -> world.exportPlot(plot))
-    importPrims     = new ImportPrims(importConfig, (file) -> workspace.importWorld())
+    importPrims     = new ImportPrims(importConfig, (file) -> workspace.importWorld(file))
     mousePrims      = new MousePrims(mouseConfig)
     outputPrims     = new OutputPrims(outputConfig, Dump)
     printPrims      = new PrintPrims(printConfig, Dump)
