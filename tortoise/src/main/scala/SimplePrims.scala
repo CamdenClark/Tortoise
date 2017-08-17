@@ -346,7 +346,7 @@ object SimplePrims {
         case _: prim.etc._exportplots      => "ExportPrims.exportAllPlots"
         case _: prim.etc._exportplot       => "ExportPrims.exportPlot"
         case _: prim.etc._wait             => "Prims.wait"
-        case _: prim.etc._importworld      => "importWorld"
+        case _: prim.etc._importworld      => "ImportPrims.importWorld"
 
         // Unimplemented
         case _: prim.etc._display     => "notImplemented('display', undefined)"

@@ -30,6 +30,7 @@ Timer            = require('util/timer')
 { pairs           } = require('brazierjs/object')
 
 { Config: ExportConfig,     Prims: ExportPrims }     = require('./prim/exportprims')
+{ Config: ImportConfig,     Prims: ImportPrims }     = require('./prim/importprims')
 { Config: MouseConfig,      Prims: MousePrims }      = require('./prim/mouseprims')
 { Config: OutputConfig,     Prims: OutputPrims }     = require('./prim/outputprims')
 { Config: PrintConfig,      Prims: PrintPrims }      = require('./prim/printprims')
@@ -47,6 +48,7 @@ module.exports =
     dialogConfig  = modelConfig?.dialog     ? new UserDialogConfig
     exportConfig  = modelConfig?.exporting  ? new ExportConfig
     fileReader    = modelConfig?.fileReader ? new FileReaderConfig
+    importConfig  = modelConfig?.importing  ? new ImportConfig
     mouseConfig   = modelConfig?.mouse      ? new MouseConfig
     outputConfig  = modelConfig?.output     ? new OutputConfig
     plots         = modelConfig?.plots      ? []
@@ -70,6 +72,7 @@ module.exports =
     listPrims       = new ListPrims(Hasher, prims.equality.bind(prims), rng.nextInt)
 
     exportPrims     = new ExportPrims(exportConfig, (-> world.exportWorld()), (-> world.exportAllPlots()), (plot) -> world.exportPlot(plot))
+    importPrims     = new ImportPrims(importConfig, (file) -> workspace.importWorld())
     mousePrims      = new MousePrims(mouseConfig)
     outputPrims     = new OutputPrims(outputConfig, Dump)
     printPrims      = new PrintPrims(printConfig, Dump)
