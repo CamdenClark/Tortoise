@@ -132,6 +132,7 @@ module.exports =
       selfManager
       breedManager
       exportPrims
+      importPrims
       layoutManager
       linkPrims
       listPrims
