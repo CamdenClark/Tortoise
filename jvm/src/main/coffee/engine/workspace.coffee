@@ -5,7 +5,7 @@ class WorldConfig
   constructor: (@resizeWorld = (->)) ->
 
 class FileReaderConfig
-  # ((String) => String) => FileReaderConfig
+  # ((String, (String) => Unit) => String) => FileReaderConfig
   constructor: (@read = (->)) ->
 
 Dump             = require('./dump')
@@ -92,9 +92,10 @@ module.exports =
     # label, and vice versa.  If we try to reify the values up front, we'll fail to retrieve both turtles, since no turtles have actually
     # been imported into the world yet.  If we try to reify them when we create the turtles, we'll run into a problem where the first one
     # instantiated won't have its label's turtle instantiated yet.  So we need to run this after the rest of the world has been set up. --JAB (4/6/17)
-    importWorld = (filepath) ->
+    importWorld = (file) ->
+      csvText    = fileReader.read(file, importWorldText)
 
-      csvText    = fileReader.read(filepath)
+    importWorldText = (csvText) ->
       worldState = convertCSV(csvText)
       { links, patches, plots, output, turtles } = worldState
 
