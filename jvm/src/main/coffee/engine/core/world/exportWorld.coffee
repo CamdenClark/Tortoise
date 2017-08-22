@@ -78,6 +78,8 @@ quoteWrapVals = (str) ->
         '"""' + str + '"""'
     else
       '"""' + str + '"""'
+  else if str.toString()[0] == '('
+    str.toString().replace('(', '{').replace(')', '}')
   else if str?
     '"' + str + '"'
   else
