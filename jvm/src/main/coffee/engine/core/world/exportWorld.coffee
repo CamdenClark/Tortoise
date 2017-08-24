@@ -1,7 +1,7 @@
 { version }     = require('meta')
 
 { concat, filter, flatMap, foldl, isEmpty, map, toObject, unique, zip }  = require('brazierjs/array')
-{ flip, pipeline }                                                       = require('brazierjs/function')
+{ flip, id, pipeline, tee }                                              = require('brazierjs/function')
 { keys, values }                                                         = require('brazierjs/object')
 { isString }                                                             = require('brazierjs/type')
 
@@ -22,20 +22,16 @@ turtleDefaultVarArr = [
 ]
 
 # Polyfill for padStart prototype (ES2017 addition)... --CC 8/14/17
-if !String.prototype.padStart
-  String.prototype.padStart = (max, fillString) ->
-    padStart(this, max, fillString)
-
-  padStart = (text, max, mask) ->
-    cur = text.length
-    if max <= cur
-      return text
-    masked = max - cur
-    filler = String(mask) || ' '
-    while (filler.length < masked)
-        filler += filler
-    fillerSlice = filler.slice(0, masked)
-    fillerSlice + text
+padStart = (text, max, mask) ->
+  cur = text.length
+  if max <= cur
+    return text
+  masked = max - cur
+  filler = String(mask) || ' '
+  while (filler.length < masked)
+      filler += filler
+  fillerSlice = filler.slice(0, masked)
+  fillerSlice + text
 #End polyfill..
 
 #Begin utility functions.
@@ -61,8 +57,14 @@ formatDate = () ->
   ]
   digits = [2, 2, 4, 2, 2, 2, 3, 0, 2, 2]
   seperators = ['/', '/', ' ', ':', ':', ':', ' ', '', '', '']
-  res = dateFormat.map((value, i) => value.toString().padStart(digits[i], '0') + seperators[i])
+  res = dateFormat.map((value, i) => padStart(value.toString(), digits[i], '0') + seperators[i])
   res.join('')
+
+# (Array[String]) -> String
+joinCommaed  = (x) -> x.join(',')
+
+# (Array[String]) -> String
+joinNewlined = (x) -> x.join('\n')
 
 # (String) -> String
 quoteWrap = (str) ->
@@ -71,11 +73,8 @@ quoteWrap = (str) ->
 # (String) => String
 quoteWrapVals = (str) ->
   if isString(str)
-    if str[0] == '{'
-      if str.length > 0
-        '"' + str + '"'
-      else
-        '"""' + str + '"""'
+    if str[0] == '{' and str.length > 0
+      '"' + str + '"'
     else
       '"""' + str + '"""'
   else if str.toString()[0] == '('
@@ -87,7 +86,7 @@ quoteWrapVals = (str) ->
 
 # ((Object) => String) => String
 replaceCamelCase = (varMap) -> (label) ->
-  if varMap.hasOwnProperty(label) then varMap[label] else label
+  varMap[label] ? label
 
 # (Array[Array[Any]]) => Array[Array[Any]]
 transpose = (arrays) ->
@@ -164,7 +163,7 @@ exportAgents = (agents, isThisAgentType, varArr, typeName) ->
 directedLinksDefault = () ->
   if isEmpty(@links().toArray())
     'NEITHER'
-  else if @breedManager.links()._isDirectedLinkBreed
+  else if @breedManager.isDirected()
     'DIRECTED'
   else
     'UNDIRECTED'
@@ -182,8 +181,6 @@ exportGlobals = () ->
     directedLinks: directedLinksDefault.call(this),
     ticks: if @ticker.ticksAreStarted() then @ticker.tickCount() else -1
   }
-  if @observer.varNames().length == 0
-    tempExport
   pipeline(map((extraGlobal) => tempExport[extraGlobal] = @observer.getGlobal(extraGlobal)))(@observer.varNames().sort())
   tempExport
 
@@ -237,6 +234,14 @@ exportWorld = () ->
   exportedState = exportState.call(this)
 
   plotCSV = concat(flatMap(csvPlot)(exportedState['plots']['plots']))(['"EXTENSIONS"'])
+
+  globalVarString = pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportedState['globals'])).join(',')
+  globalValString = map(quoteWrapVals)(values(exportedState['globals'])).join(',')
+
+  turtleDefaultVars = map(quoteWrap)(turtleDefaultVarArr)
+  turtleVarString   = concat(turtleDefaultVars)(pipeline(values, filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap))(@breedManager.breeds())).join(',')
+  turtleValString   = if isEmpty(exportedState['turtles']) then '' else map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n') + '\n'
+
   exportCSV = concat([
     '"export-world data (NetLogo Web ' + version + ')"',
     '"[IMPLEMENT .NLOGO]"',
@@ -246,12 +251,12 @@ exportWorld = () ->
     quoteWrap(exportedState['randomState']),
     '',
     quoteWrap('GLOBALS'),
-    pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportedState['globals'])).join(','),
-    map(quoteWrapVals)(values(exportedState['globals'])).join(','),
+    globalVarString,
+    globalValString,
     '',
     quoteWrap('TURTLES'),
-    concat(map(quoteWrap)(turtleDefaultVarArr))(pipeline(filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap))(values(@breedManager.breeds()))).join(','),
-    if isEmpty(exportedState['turtles']) then '' else map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n') + '\n',
+    turtleVarString,
+    turtleValString,
     quoteWrap('PATCHES'),
     map(quoteWrap)(keys(exportedState['patches'][0])).join(','),
     map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['patches']).join('\n'),
@@ -260,7 +265,6 @@ exportWorld = () ->
     concat(map(quoteWrap)(linkDefaultVarArr))(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap))(values(@breedManager.breeds()))).join(','),
     if isEmpty(exportedState['links']) then '' else map((link) -> pipeline(map(quoteWrapVals))(values(link)).join(','))(exportedState['links']).join('\n') + '\n',
     '',
-    quoteWrap('OUTPUT'),
     quoteWrap('PLOTS'),
     if exportedState['plots']['currentPlot']? then quoteWrap(exportedState['plots']['currentPlot'].name) else quoteWrap(''),
   ])(plotCSV)
