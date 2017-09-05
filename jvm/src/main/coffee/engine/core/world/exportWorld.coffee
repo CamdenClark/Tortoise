@@ -115,11 +115,11 @@ csvPlot = (plot) ->
   transposedPens = pipeline(transpose, map((row) -> map(map(quoteWrapVals))(row)), map((row) -> row.join(',')))(map((pen) -> map((point) -> [point['x'], point['y'], point['color'], point['penMode']])(pen['points']))(plot['pens'])).join('\n')
   [
     quoteWrapVals(plot['name']),
-    pipeline(map(replaceCamelCase(plotDefaultVars)), map(quoteWrap))(keys(plot['vars'])).join(','),
-    pipeline(values, map(quoteWrapVals))(plot['vars']).join(','),
+    pipeline(keys, map(replaceCamelCase(plotDefaultVars)), map(quoteWrap), joinCommaed)(plot['vars']),
+    pipeline(values, map(quoteWrapVals), joinCommaed)(plot['vars']),
     '',
     pipeline(values, map(quoteWrap))(penDefaultVars),
-    map((pen) -> pipeline(map(quoteWrapVals))(values(pen['vars'])).join(','))(plot['pens']).join('\n'),
+    map((pen) -> pipeline(values, map(quoteWrapVals), joinCommaed)(pen['vars']))(plot['pens']).join('\n'),
     '',
     map((pen) -> quoteWrapVals(pen['vars']['name']))(plot['pens']).join(',,,,'),
     flatMap((pen) -> map(quoteWrap)(values(pointDefaultVars)))(plot['pens']).join(','),
@@ -216,14 +216,15 @@ exportPlot = (plotName) ->
 
 # () => String
 exportAllPlots = () ->
+  globals = exportGlobals.call(this)
   defaultExportPlot = [
     '"export-world data (NetLogo Web ' + version + ')"',
     '"[IMPLEMENT .NLOGO]"',
     quoteWrap(formatDate()),
     '',
     quoteWrap('GLOBALS'),
-    pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportGlobals.call(this)).slice(8)).join(','),
-    map(quoteWrapVals)(values(exportGlobals.call(this)).slice(8)).join(','),
+    pipeline(keys, ((x) -> x.slice(8)), map(replaceCamelCase(globalDefaultVars)), map(quoteWrap), joinCommaed)(globals),
+    pipeline(values, ((x) -> x.slice(8)), map(quoteWrapVals), joinCommaed)(globals),
     ''
   ]
   plots = @_plotManager.exportState()
@@ -231,16 +232,25 @@ exportAllPlots = () ->
 
 # () => String
 exportWorld = () ->
-  exportedState = exportState.call(this)
+  { patches, turtles, links, globals, randomState, plots } = exportState.call(this)
 
-  plotCSV = concat(flatMap(csvPlot)(exportedState['plots']['plots']))(['"EXTENSIONS"'])
+  plotCSV = concat(flatMap(csvPlot)(plots['plots']))(['"EXTENSIONS"'])
 
-  globalVarString = pipeline(map(replaceCamelCase(globalDefaultVars)), map(quoteWrap))(keys(exportedState['globals'])).join(',')
-  globalValString = map(quoteWrapVals)(values(exportedState['globals'])).join(',')
+  globalVarString   = pipeline(keys, map(replaceCamelCase(globalDefaultVars)), map(quoteWrap), joinCommaed)(globals)
+  globalValString   = pipeline(values, map(quoteWrapVals), joinCommaed)(globals)
 
   turtleDefaultVars = map(quoteWrap)(turtleDefaultVarArr)
-  turtleVarString   = concat(turtleDefaultVars)(pipeline(values, filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap))(@breedManager.breeds())).join(',')
-  turtleValString   = if isEmpty(exportedState['turtles']) then '' else map((turt) -> pipeline(map(quoteWrapVals))(values(turt)).join(','))(exportedState['turtles']).join('\n') + '\n'
+  turtleVarString   = pipeline(values, filter((breed) -> not breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap), concat(turtleDefaultVars), joinCommaed)(@breedManager.breeds())
+  turtleValString   = if isEmpty(turtles) then '' else map((turt) -> pipeline(values, map(quoteWrapVals), joinCommaed)(turt))(turtles).join('\n') + '\n'
+
+  patchVarString    = pipeline(keys, map(quoteWrap), joinCommaed)(patches[0])
+  patchValString    = map((patch) -> pipeline(values, map(quoteWrapVals), joinCommaed)(patch))(patches).join('\n')
+
+  linkDefaultVars   = map(quoteWrap)(linkDefaultVarArr)
+  linkVarString     = pipeline(values, filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap), concat(linkDefaultVars), joinCommaed)(@breedManager.breeds())
+  linkValString     = if isEmpty(links) then '' else map((link) -> pipeline(values, map(quoteWrapVals), joinCommaed)(link))(links).join('\n') + '\n'
+
+  currentPlot       = if plots['currentPlot']? then quoteWrap(plots['currentPlot'].name) else quoteWrap('')
 
   exportCSV = concat([
     '"export-world data (NetLogo Web ' + version + ')"',
@@ -248,7 +258,7 @@ exportWorld = () ->
     quoteWrap(formatDate()),
     '',
     quoteWrap('RANDOM STATE'),
-    quoteWrap(exportedState['randomState']),
+    quoteWrap(randomState),
     '',
     quoteWrap('GLOBALS'),
     globalVarString,
@@ -258,15 +268,15 @@ exportWorld = () ->
     turtleVarString,
     turtleValString,
     quoteWrap('PATCHES'),
-    map(quoteWrap)(keys(exportedState['patches'][0])).join(','),
-    map((patch) -> pipeline(map(quoteWrapVals))(values(patch)).join(','))(exportedState['patches']).join('\n'),
+    patchVarString,
+    patchValString,
     '',
     quoteWrap('LINKS'),
-    concat(map(quoteWrap)(linkDefaultVarArr))(pipeline(filter((breed) -> breed.isLinky()), flatMap((x) -> x.varNames), unique, map(quoteWrap))(values(@breedManager.breeds()))).join(','),
-    if isEmpty(exportedState['links']) then '' else map((link) -> pipeline(map(quoteWrapVals))(values(link)).join(','))(exportedState['links']).join('\n') + '\n',
+    linkVarString,
+    linkValString,
     '',
     quoteWrap('PLOTS'),
-    if exportedState['plots']['currentPlot']? then quoteWrap(exportedState['plots']['currentPlot'].name) else quoteWrap(''),
+    currentPlot
   ])(plotCSV)
   exportCSV.join('\n')
 

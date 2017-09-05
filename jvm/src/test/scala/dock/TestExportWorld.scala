@@ -19,6 +19,9 @@ class TestExportWorld extends DockingSuite {
       var exportResultNLW = scala.util.Try(Source.fromFile(s"/tmp/NLW_${name}.csv").mkString)
                 .getOrElse(s"Could not find NLW ${name}.csv file").trim
 
+      val outputRegex = """"OUTPUT"\n""".r
+
+      exportResultNLD = outputRegex.replaceAllIn(exportResultNLD, "")
       var splitExportResultNLD = exportResultNLD.split("\n\n").toArray
       var splitExportResultNLW = exportResultNLW.split("\n\n").toArray
 
